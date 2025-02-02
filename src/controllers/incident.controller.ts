@@ -1,9 +1,5 @@
 import { getAuth } from "@clerk/express";
-import {
-  ComponentStatus,
-  IncidentSeverity,
-  IncidentStatus,
-} from "@prisma/client";
+import { ComponentStatus, IncidentStatus } from "@prisma/client";
 import { Request, Response } from "express";
 import { ComponentService } from "../services/ComponentService";
 import { IncidentService } from "../services/IncidentService";
@@ -32,7 +28,7 @@ const createIncident = async (req: Request, res: Response) => {
     const incident = await IncidentService.createIncident({
       title,
       description,
-      severity: severity as IncidentSeverity,
+      status: severity as IncidentStatus,
       occuredAt: new Date(occuredAt),
       orgId,
       userId,
@@ -84,7 +80,7 @@ const updateIncidentDetails = async (req: Request, res: Response) => {
       orgId,
       {
         ...updateData,
-        severity: updateData.severity as IncidentSeverity,
+        status: updateData.status as IncidentStatus,
         occuredAt: updateData.occuredAt
           ? new Date(updateData.occuredAt)
           : undefined,
