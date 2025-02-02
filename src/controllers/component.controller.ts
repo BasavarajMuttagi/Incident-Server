@@ -4,7 +4,7 @@ import { ComponentService } from "../services/ComponentService";
 const createComponent = async (req: Request, res: Response) => {
   try {
     const { orgId } = req.params;
-    const { name, description } = req.body;
+    const { name, description, status } = req.body;
 
     if (!name) {
       res.status(400).json({ error: "Name is required" });
@@ -14,6 +14,7 @@ const createComponent = async (req: Request, res: Response) => {
     const component = await ComponentService.createComponent({
       name,
       description,
+      status,
       orgId,
     });
 

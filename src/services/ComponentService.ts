@@ -3,14 +3,15 @@ import { prisma } from "../../prisma/db";
 
 export class ComponentService {
   static async createComponent(
-    data: Pick<Component, "name" | "description" | "orgId">,
+    data: Pick<Component, "name" | "description" | "status" | "orgId">,
   ) {
-    const { name, description, orgId } = data;
+    const { name, description, status, orgId } = data;
 
     return await prisma.component.create({
       data: {
         name,
         description,
+        status,
         orgId,
       },
     });
@@ -25,7 +26,6 @@ export class ComponentService {
       where: { id, orgId },
       data: {
         ...data,
-        updatedAt: new Date(),
       },
     });
   }

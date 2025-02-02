@@ -29,8 +29,9 @@ model Incident {
   description      String
   severity         IncidentSeverity
   status           IncidentStatus      @default(INVESTIGATING)
-  createdAt        DateTime            @default(now())
+  occuredAt        DateTime
   resolvedAt       DateTime?
+  createdAt        DateTime            @default(now())
   components       IncidentComponent[]
   IncidentTimeline IncidentTimeline[]
 
