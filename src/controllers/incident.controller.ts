@@ -15,12 +15,12 @@ const createIncident = async (req: Request, res: Response) => {
       return;
     }
 
-    const { title, description, severity, occuredAt, components } = req.body;
+    const { title, description, status, occuredAt, components } = req.body;
 
-    if (!title || !description || !severity || !occuredAt) {
+    if (!title || !description || !status || !occuredAt) {
       res.status(400).json({
         message:
-          "Bad Request: Missing required fields (title, description, severity, occuredAt)",
+          "Bad Request: Missing required fields (title, description, status, occuredAt)",
       });
       return;
     }
@@ -28,7 +28,7 @@ const createIncident = async (req: Request, res: Response) => {
     const incident = await IncidentService.createIncident({
       title,
       description,
-      status: severity as IncidentStatus,
+      status: status as IncidentStatus,
       occuredAt: new Date(occuredAt),
       orgId,
       userId,
@@ -37,12 +37,12 @@ const createIncident = async (req: Request, res: Response) => {
 
     for (const component of components) {
       const effectiveStatus = await IncidentService.determineComponentStatus(
-        component.componentId,
+        component.componentId
       );
       await ComponentService.updateComponentStatus(
         component.componentId,
         orgId,
-        effectiveStatus,
+        effectiveStatus
       );
     }
 
@@ -84,7 +84,7 @@ const updateIncidentDetails = async (req: Request, res: Response) => {
         occuredAt: updateData.occuredAt
           ? new Date(updateData.occuredAt)
           : undefined,
-      },
+      }
     );
 
     res.json(incident);
@@ -127,7 +127,7 @@ const updateIncidentStatus = async (req: Request, res: Response) => {
       incidentId,
       orgId,
       status as IncidentStatus,
-      userId,
+      userId
     );
 
     res.json(incident);
@@ -223,7 +223,7 @@ const updateComponentStatus = async (req: Request, res: Response) => {
     const component = await IncidentService.updateComponentStatusInIncident(
       incidentId,
       componentId,
-      status as ComponentStatus,
+      status as ComponentStatus
     );
 
     res.json(component);
