@@ -1,14 +1,14 @@
 import express from "express";
 import {
-  createIncident,
-  listIncidents,
-  getIncidentDetails,
-  updateIncidentDetails,
-  updateIncidentStatus,
   addComponent,
+  addTimelineUpdate,
+  createIncident,
+  getIncidentID,
+  listIncidents,
   removeComponent,
   updateComponentStatus,
-  addTimelineUpdate,
+  updateIncidentDetails,
+  updateIncidentStatus,
 } from "../controllers/incident.controller";
 
 const IncidentRouter = express.Router();
@@ -16,7 +16,7 @@ const IncidentRouter = express.Router();
 // Incident routes
 IncidentRouter.post("/create", createIncident);
 IncidentRouter.get("/list", listIncidents);
-IncidentRouter.get("/:incidentId", getIncidentDetails);
+IncidentRouter.get("/:incidentId", getIncidentID);
 IncidentRouter.patch("/:incidentId", updateIncidentDetails);
 IncidentRouter.patch("/:incidentId/status", updateIncidentStatus);
 

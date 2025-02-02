@@ -198,6 +198,15 @@ export class IncidentService {
   ): Promise<Incident | null> {
     return prisma.incident.findFirst({
       where: { id: incidentId, orgId },
+    });
+  }
+
+  static async getIncidentID(
+    incidentId: string,
+    orgId: string,
+  ): Promise<Incident | null> {
+    return prisma.incident.findFirst({
+      where: { id: incidentId, orgId },
       include: {
         components: {
           include: { component: true },

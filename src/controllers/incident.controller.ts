@@ -300,7 +300,7 @@ const listIncidents = async (req: Request, res: Response) => {
   }
 };
 
-const getIncidentDetails = async (req: Request, res: Response) => {
+const getIncidentID = async (req: Request, res: Response) => {
   try {
     const { orgId } = getAuth(req);
     const { incidentId } = req.params;
@@ -319,10 +319,7 @@ const getIncidentDetails = async (req: Request, res: Response) => {
       return;
     }
 
-    const incident = await IncidentService.getIncidentDetails(
-      incidentId,
-      orgId,
-    );
+    const incident = await IncidentService.getIncidentID(incidentId, orgId);
 
     if (!incident) {
       res.status(404).json({ message: "Incident not found" });
@@ -342,7 +339,7 @@ export {
   addComponent,
   addTimelineUpdate,
   createIncident,
-  getIncidentDetails,
+  getIncidentID,
   listIncidents,
   removeComponent,
   updateComponentStatus,
