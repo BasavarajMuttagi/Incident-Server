@@ -10,7 +10,6 @@ datasource db {
 model Component {
   id                   String                 @id @default(uuid())
   orgId                String
-  userId               String
   name                 String                 @unique
   description          String?
   status               ComponentStatus        @default(OPERATIONAL)
@@ -46,11 +45,8 @@ model IncidentComponent {
   component   Component       @relation(fields: [componentId], references: [id])
   componentId String
   status      ComponentStatus
-  orgId       String
-  userId      String
 
   @@unique([incidentId, componentId])
-  @@index([orgId])
   @@index([componentId])
   @@index([incidentId])
   @@index([status])
@@ -95,11 +91,8 @@ model MaintenanceComponent {
   component     Component       @relation(fields: [componentId], references: [id])
   componentId   String
   status        ComponentStatus
-  orgId         String
-  userId        String
 
   @@unique([maintenanceId, componentId])
-  @@index([orgId])
   @@index([componentId])
   @@index([maintenanceId])
 }
