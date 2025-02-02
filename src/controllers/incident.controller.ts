@@ -5,6 +5,7 @@ import {
   IncidentStatus,
 } from "@prisma/client";
 import { Request, Response } from "express";
+import { ComponentService } from "../services/ComponentService";
 import { IncidentService } from "../services/IncidentService";
 
 const createIncident = async (req: Request, res: Response) => {
@@ -37,6 +38,17 @@ const createIncident = async (req: Request, res: Response) => {
       userId,
       components,
     });
+
+    for (const component of components) {
+      const effectiveStatus = await IncidentService.determineComponentStatus(
+        component.componentId,
+      );
+      await ComponentService.updateComponentStatus(
+        component.componentId,
+        orgId,
+        effectiveStatus,
+      );
+    }
 
     res.status(201).json(incident);
     return;

@@ -35,8 +35,6 @@ export class IncidentService {
             incidentId: incident.id,
             componentId: comp.componentId,
             status: comp.status,
-            orgId: data.orgId,
-            userId: data.userId,
           })),
         });
       }
@@ -84,6 +82,9 @@ export class IncidentService {
           status,
           resolvedAt: status === IncidentStatus.RESOLVED ? new Date() : null,
         },
+        include: {
+          components: true,
+        },
       });
 
       await tx.incidentTimeline.create({
@@ -96,7 +97,44 @@ export class IncidentService {
         },
       });
 
+      // If incident is resolved, check all affected components
+      if (status === IncidentStatus.RESOLVED) {
+        for (const component of incident.components) {
+          const currentStatus = await this.determineComponentStatus(
+            component.componentId,
+          );
+          // You might want to log this status change or notify subscribers
+          console.log(
+            `Component ${component.componentId} current status: ${currentStatus}`,
+          );
+        }
+      }
+
       return incident;
+    });
+  }
+
+  static async updateComponentStatusInIncident(
+    incidentId: string,
+    componentId: string,
+    status: ComponentStatus,
+  ): Promise<IncidentComponent> {
+    return prisma.$transaction(async (tx) => {
+      const updatedComponent = await tx.incidentComponent.update({
+        where: {
+          incidentId_componentId: {
+            incidentId,
+            componentId,
+          },
+        },
+        data: { status },
+      });
+
+      const currentStatus = await this.determineComponentStatus(componentId);
+      // You might want to log this status change or notify subscribers
+      console.log(`Component ${componentId} current status: ${currentStatus}`);
+
+      return updatedComponent;
     });
   }
 
@@ -123,22 +161,6 @@ export class IncidentService {
         incidentId,
         componentId,
       },
-    });
-  }
-
-  static async updateComponentStatusInIncident(
-    incidentId: string,
-    componentId: string,
-    status: ComponentStatus,
-  ): Promise<IncidentComponent> {
-    return prisma.incidentComponent.update({
-      where: {
-        incidentId_componentId: {
-          incidentId,
-          componentId,
-        },
-      },
-      data: { status },
     });
   }
 
@@ -186,5 +208,47 @@ export class IncidentService {
         },
       },
     });
+  }
+
+  static async determineComponentStatus(
+    componentId: string,
+  ): Promise<ComponentStatus> {
+    const activeIncidents = await prisma.incidentComponent.findMany({
+      where: {
+        componentId,
+        incident: {
+          status: {
+            not: IncidentStatus.RESOLVED,
+          },
+        },
+      },
+      select: {
+        status: true,
+      },
+    });
+
+    if (!activeIncidents.length) {
+      return ComponentStatus.OPERATIONAL;
+    }
+
+    // Map statuses to severity numbers (higher number = more severe)
+    const statusSeverity = {
+      [ComponentStatus.OPERATIONAL]: 0,
+      [ComponentStatus.DEGRADED]: 1,
+      [ComponentStatus.PARTIAL_OUTAGE]: 2,
+      [ComponentStatus.MAJOR_OUTAGE]: 3,
+    };
+
+    // Find the highest severity status
+    const mostSevereStatus = activeIncidents.reduce<ComponentStatus>(
+      (mostSevere, incident) => {
+        return statusSeverity[incident.status] > statusSeverity[mostSevere]
+          ? incident.status
+          : mostSevere;
+      },
+      ComponentStatus.OPERATIONAL,
+    );
+
+    return mostSevereStatus;
   }
 }

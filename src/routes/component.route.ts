@@ -2,11 +2,11 @@ import { requireAuth } from "@clerk/express";
 import express from "express";
 import {
   createComponent,
-  deleteComponent,
-  getComponent,
   listComponents,
+  getComponent,
   updateComponent,
-} from "../controllers/Component.controller";
+  deleteComponent,
+} from "../controllers/component.controller";
 
 const ComponentRouter = express.Router();
 ComponentRouter.use(requireAuth());

@@ -16,7 +16,7 @@ app.get("/", (req, res) => {
 
 app.use("/api/v1/component", ComponentRouter);
 app.use("/api/v1/incident", IncidentRouter);
-app.listen(port, () => {
+app.listen(port, async () => {
   console.log(`[server]: Server is running at http://localhost:${port}`);
 });
 
