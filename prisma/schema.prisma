@@ -27,7 +27,6 @@ model Incident {
   userId           String
   title            String
   description      String
-  severity         IncidentSeverity
   status           IncidentStatus      @default(INVESTIGATING)
   occuredAt        DateTime
   resolvedAt       DateTime?
@@ -117,12 +116,6 @@ enum ComponentStatus {
   DEGRADED
   PARTIAL_OUTAGE
   MAJOR_OUTAGE
-}
-
-enum IncidentSeverity {
-  MINOR
-  MAJOR
-  CRITICAL
 }
 
 enum IncidentStatus {

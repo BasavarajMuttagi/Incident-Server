@@ -2,7 +2,6 @@ import {
   ComponentStatus,
   Incident,
   IncidentComponent,
-  IncidentSeverity,
   IncidentStatus,
 } from "@prisma/client";
 import { prisma } from "../../prisma/db";
@@ -11,7 +10,7 @@ export class IncidentService {
   static async createIncident(data: {
     title: string;
     description: string;
-    severity: IncidentSeverity;
+    status: IncidentStatus;
     occuredAt: Date;
     orgId: string;
     userId: string;
@@ -22,7 +21,7 @@ export class IncidentService {
         data: {
           title: data.title,
           description: data.description,
-          severity: data.severity,
+          status: data.status,
           occuredAt: data.occuredAt,
           orgId: data.orgId,
           userId: data.userId,
@@ -59,7 +58,7 @@ export class IncidentService {
     data: {
       title?: string;
       description?: string;
-      severity?: IncidentSeverity;
+      status?: IncidentStatus;
       occuredAt?: Date;
     },
   ): Promise<Incident> {
