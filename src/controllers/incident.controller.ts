@@ -1,20 +1,13 @@
-import { getAuth } from "@clerk/express";
-import { ComponentStatus, IncidentStatus } from "@prisma/client";
+import { clerkClient, getAuth } from "@clerk/express";
+import { Component, Incident } from "@prisma/client";
 import { Request, Response } from "express";
-import { ComponentService } from "../services/ComponentService";
+import { IncidentComponentService } from "../services/IncidentComponentService";
 import { IncidentService } from "../services/IncidentService";
+import { IncidentTimeline } from "../services/IncidentTimelineService";
 
 const createIncident = async (req: Request, res: Response) => {
   try {
-    const { orgId, userId } = getAuth(req);
-
-    if (!orgId || !userId) {
-      res.status(401).json({
-        message: "Unauthorized: Missing authentication credentials",
-      });
-      return;
-    }
-
+    const { orgId, userId } = getAuth(req) as { orgId: string; userId: string };
     const { title, description, status, occuredAt, components } = req.body;
 
     if (!title || !description || !status || !occuredAt) {
@@ -28,45 +21,26 @@ const createIncident = async (req: Request, res: Response) => {
     const incident = await IncidentService.createIncident({
       title,
       description,
-      status: status as IncidentStatus,
+      status,
       occuredAt: new Date(occuredAt),
+      components,
       orgId,
       userId,
-      components,
     });
-
-    for (const component of components) {
-      const effectiveStatus = await IncidentService.determineComponentStatus(
-        component.componentId
-      );
-      await ComponentService.updateComponentStatus(
-        component.componentId,
-        orgId,
-        effectiveStatus
-      );
-    }
 
     res.status(201).json(incident);
     return;
   } catch (error) {
-    console.error("[CREATE_INCIDENT_ERROR]", error);
+    console.error("[CREATE_INCIDENT_ERROR] Failed to create incident:", error);
     res.status(500).json({ message: "Internal server error" });
     return;
   }
 };
 
-const updateIncidentDetails = async (req: Request, res: Response) => {
+const getIncidentById = async (req: Request, res: Response) => {
   try {
-    const { orgId, userId } = getAuth(req);
+    const { orgId } = getAuth(req) as { orgId: string };
     const { incidentId } = req.params;
-    const updateData = req.body;
-
-    if (!orgId || !userId) {
-      res.status(401).json({
-        message: "Unauthorized: Missing authentication credentials",
-      });
-      return;
-    }
 
     if (!incidentId) {
       res.status(400).json({
@@ -75,205 +49,81 @@ const updateIncidentDetails = async (req: Request, res: Response) => {
       return;
     }
 
-    const incident = await IncidentService.updateIncidentDetails(
-      incidentId,
-      orgId,
-      {
-        ...updateData,
-        status: updateData.status as IncidentStatus,
-        occuredAt: updateData.occuredAt
-          ? new Date(updateData.occuredAt)
-          : undefined,
-      }
-    );
+    const incident = await IncidentService.getIncident(incidentId, orgId);
 
-    res.json(incident);
+    if (!incident) {
+      res.status(404).json({ message: "Incident not found" });
+      return;
+    }
+
+    res.status(200).json(incident);
     return;
   } catch (error) {
-    console.error("[UPDATE_INCIDENT_ERROR]", error);
-    res.status(500).json({ message: "Internal server error" });
-    return;
-  }
-};
-
-const updateIncidentStatus = async (req: Request, res: Response) => {
-  try {
-    const { orgId, userId } = getAuth(req);
-    const { incidentId } = req.params;
-    const { status } = req.body;
-
-    if (!orgId || !userId) {
-      res.status(401).json({
-        message: "Unauthorized: Missing authentication credentials",
-      });
-      return;
-    }
-
-    if (!incidentId) {
-      res.status(400).json({
-        message: "Bad Request: Missing incident ID",
-      });
-      return;
-    }
-
-    if (!status) {
-      res.status(400).json({
-        message: "Bad Request: Invalid or missing status",
-      });
-      return;
-    }
-
-    const incident = await IncidentService.updateIncidentStatus(
-      incidentId,
-      orgId,
-      status as IncidentStatus,
-      userId
+    console.error(
+      "[GET_INCIDENT_ERROR] Failed to fetch incident by ID:",
+      error,
     );
-
-    res.json(incident);
-    return;
-  } catch (error) {
-    console.error("[UPDATE_STATUS_ERROR]", error);
     res.status(500).json({ message: "Internal server error" });
     return;
   }
 };
 
-const addComponent = async (req: Request, res: Response) => {
+const updateIncidentById = async (req: Request, res: Response) => {
   try {
-    const { incidentId } = req.params;
-    const { componentId, status } = req.body;
+    const { orgId } = getAuth(req) as { orgId: string };
+    const { incidentId: id } = req.params;
+    const updateData = req.body as Pick<
+      Incident,
+      "title" | "description" | "occuredAt" | "status" | "resolvedAt"
+    >;
 
-    if (!incidentId) {
+    if (!id) {
       res.status(400).json({
         message: "Bad Request: Missing incident ID",
       });
       return;
     }
 
-    if (!componentId || !status) {
-      res.status(400).json({
-        message: "Bad Request: Missing componentId or status",
-      });
-      return;
-    }
-
-    if (!Object.values(ComponentStatus).includes(status)) {
-      res.status(400).json({
-        message: "Bad Request: Invalid component status",
-      });
-      return;
-    }
-
-    const component = await IncidentService.addComponentToIncident({
-      incidentId,
-      componentId,
-      status: status as ComponentStatus,
+    const incident = await IncidentService.updateIncident({
+      id,
+      orgId,
+      ...updateData,
+      occuredAt: new Date(updateData.occuredAt),
+      resolvedAt: updateData.resolvedAt
+        ? new Date(updateData.resolvedAt)
+        : null,
     });
 
-    res.status(200).json(component);
+    res.status(200).json(incident);
     return;
   } catch (error) {
-    console.error("[ADD_COMPONENT_ERROR]", error);
+    console.error("[UPDATE_INCIDENT_ERROR] Failed to update incident:", error);
     res.status(500).json({ message: "Internal server error" });
     return;
   }
 };
 
-const removeComponent = async (req: Request, res: Response) => {
+const deleteIncidents = async (req: Request, res: Response) => {
   try {
-    const { incidentId, componentId } = req.params;
+    const { orgId } = getAuth(req) as { orgId: string };
+    const { incidentId: id } = req.params;
+    const { incidentIds } = req.body;
 
-    if (!incidentId || !componentId) {
-      res.status(400).json({
-        message: "Bad Request: Missing incident ID or component ID",
-      });
-      return;
-    }
-
-    await IncidentService.removeComponentFromIncident(incidentId, componentId);
-    res.sendStatus(204);
-    return;
-  } catch (error) {
-    console.error("[REMOVE_COMPONENT_ERROR]", error);
-    res.status(500).json({ message: "Internal server error" });
-    return;
-  }
-};
-
-const updateComponentStatus = async (req: Request, res: Response) => {
-  try {
-    const { incidentId, componentId } = req.params;
-    const { status } = req.body;
-
-    if (!incidentId || !componentId) {
-      res.status(400).json({
-        message: "Bad Request: Missing incident ID or component ID",
-      });
-      return;
-    }
-
-    if (!status || !Object.values(ComponentStatus).includes(status)) {
-      res.status(400).json({
-        message: "Bad Request: Invalid or missing status",
-      });
-      return;
-    }
-
-    const component = await IncidentService.updateComponentStatusInIncident(
-      incidentId,
-      componentId,
-      status as ComponentStatus
-    );
-
-    res.json(component);
-    return;
-  } catch (error) {
-    console.error("[UPDATE_COMPONENT_STATUS_ERROR]", error);
-    res.status(500).json({ message: "Internal server error" });
-    return;
-  }
-};
-
-const addTimelineUpdate = async (req: Request, res: Response) => {
-  try {
-    const { orgId, userId } = getAuth(req);
-    const { incidentId } = req.params;
-    const { message, status } = req.body;
-
-    if (!orgId || !userId) {
-      res.status(401).json({
-        message: "Unauthorized: Missing authentication credentials",
-      });
-      return;
-    }
-
-    if (!incidentId) {
+    if (!id) {
       res.status(400).json({
         message: "Bad Request: Missing incident ID",
       });
       return;
     }
 
-    if (!message || !status) {
-      res.status(400).json({
-        message: "Bad Request: Missing message or status",
-      });
-      return;
-    }
-
-    const update = await IncidentService.addTimelineUpdate({
-      incidentId,
-      message,
-      status: status as IncidentStatus,
-      orgId,
-      userId,
-    });
-
-    res.json(update);
+    const incident = await IncidentService.deleteIncidents(incidentIds, orgId);
+    res.status(200).json(incident);
     return;
   } catch (error) {
-    console.error("[ADD_TIMELINE_ERROR]", error);
+    console.error(
+      "[DELETE_INCIDENTS_ERROR] Failed to delete incidents:",
+      error,
+    );
     res.status(500).json({ message: "Internal server error" });
     return;
   }
@@ -281,36 +131,58 @@ const addTimelineUpdate = async (req: Request, res: Response) => {
 
 const listIncidents = async (req: Request, res: Response) => {
   try {
-    const { orgId } = getAuth(req);
-
-    if (!orgId) {
-      res.status(401).json({
-        message: "Unauthorized: Missing organization ID",
-      });
-      return;
-    }
-
+    const { orgId } = getAuth(req) as { orgId: string };
     const incidents = await IncidentService.listIncidents(orgId);
     res.json(incidents);
     return;
   } catch (error) {
-    console.error("[LIST_INCIDENTS_ERROR]", error);
+    console.error("[LIST_INCIDENTS_ERROR] Failed to list incidents:", error);
     res.status(500).json({ message: "Internal server error" });
     return;
   }
 };
 
-const getIncidentID = async (req: Request, res: Response) => {
+const addComponents = async (req: Request, res: Response) => {
   try {
-    const { orgId } = getAuth(req);
+    const { orgId } = getAuth(req) as { orgId: string };
     const { incidentId } = req.params;
+    const components = req.body.components as Component[];
 
-    if (!orgId) {
-      res.status(401).json({
-        message: "Unauthorized: Missing organization ID",
+    if (!incidentId) {
+      res.status(400).json({
+        message: "Bad Request: Missing incident ID",
       });
       return;
     }
+    if (!components || components.length === 0) {
+      res.status(400).json({
+        message: "Bad Request: Missing components",
+      });
+      return;
+    }
+
+    const incidentComponents = components.map(({ id, status }) => ({
+      incidentId,
+      orgId,
+      componentId: id,
+      status,
+    }));
+
+    const incidents =
+      await IncidentComponentService.addComponents(incidentComponents);
+    res.status(200).json(incidents);
+    return;
+  } catch (error) {
+    console.error("[ADD_COMPONENTS_ERROR] Failed to add components:", error);
+    res.status(500).json({ message: "Internal server error" });
+    return;
+  }
+};
+
+const listComponentsAttached = async (req: Request, res: Response) => {
+  try {
+    const { orgId } = getAuth(req) as { orgId: string };
+    const { incidentId } = req.params;
 
     if (!incidentId) {
       res.status(400).json({
@@ -319,30 +191,125 @@ const getIncidentID = async (req: Request, res: Response) => {
       return;
     }
 
-    const incident = await IncidentService.getIncidentID(incidentId, orgId);
+    const incidents = await IncidentComponentService.listComponentsAttached(
+      incidentId,
+      orgId,
+    );
+    res.status(200).json(incidents);
+    return;
+  } catch (error) {
+    console.error(
+      "[LIST_COMPONENTS_ERROR] Failed to list attached components:",
+      error,
+    );
+    res.status(500).json({ message: "Internal server error" });
+    return;
+  }
+};
 
-    if (!incident) {
-      res.status(404).json({ message: "Incident not found" });
+const detachComponents = async (req: Request, res: Response) => {
+  try {
+    const { orgId } = getAuth(req) as { orgId: string };
+    const { incidentId } = req.params;
+    const components = req.body.components as Component[];
+    if (!incidentId) {
+      res.status(400).json({
+        message: "Bad Request: Missing incident ID",
+      });
+      return;
+    }
+    const componentIds = components.map((e) => e.id);
+    const incidents = await IncidentComponentService.detachComponents(
+      orgId,
+      incidentId,
+      componentIds,
+    );
+    res.status(200).json(incidents);
+    return;
+  } catch (error) {
+    console.error(
+      "[DETACH_COMPONENTS_ERROR] Failed to detach components:",
+      error,
+    );
+    res.status(500).json({ message: "Internal server error" });
+    return;
+  }
+};
+
+const listTimelineUpdates = async (req: Request, res: Response) => {
+  try {
+    const { orgId } = getAuth(req) as { orgId: string };
+    const { incidentId } = req.params;
+    if (!incidentId) {
+      res.status(400).json({
+        message: "Bad Request: Missing incident ID",
+      });
       return;
     }
 
-    res.json(incident);
+    const updates = await IncidentTimeline.listUpdates(incidentId, orgId);
+    const userPromises = updates.map(async (update) => {
+      const userInfo = await clerkClient.users.getUser(update.userId);
+      return {
+        ...update,
+        user: userInfo.fullName,
+      };
+    });
+
+    const updatesWithUserInfo = await Promise.all(userPromises);
+    res.status(200).json(updatesWithUserInfo);
     return;
   } catch (error) {
-    console.error("[GET_INCIDENT_ERROR]", error);
+    console.error(
+      "[LIST_TIMELINE_ERROR] Failed to list timeline updates:",
+      error,
+    );
+    res.status(500).json({ message: "Internal server error" });
+    return;
+  }
+};
+
+const addTimelineUpdate = async (req: Request, res: Response) => {
+  try {
+    const { orgId, userId } = getAuth(req) as { orgId: string; userId: string };
+    const { incidentId } = req.params;
+    const { message, status } = req.body;
+
+    if (!incidentId) {
+      res.status(400).json({
+        message: "Bad Request: Missing incident ID",
+      });
+      return;
+    }
+
+    const updates = await IncidentTimeline.addUpdate({
+      incidentId,
+      message,
+      status,
+      orgId,
+      userId,
+    });
+    res.status(200).json(updates);
+    return;
+  } catch (error) {
+    console.error(
+      "[ADD_TIMELINE_UPDATE_ERROR] Failed to add timeline update:",
+      error,
+    );
     res.status(500).json({ message: "Internal server error" });
     return;
   }
 };
 
 export {
-  addComponent,
+  addComponents,
   addTimelineUpdate,
   createIncident,
-  getIncidentID,
+  deleteIncidents,
+  detachComponents,
+  getIncidentById,
+  listComponentsAttached,
   listIncidents,
-  removeComponent,
-  updateComponentStatus,
-  updateIncidentDetails,
-  updateIncidentStatus,
+  listTimelineUpdates,
+  updateIncidentById,
 };

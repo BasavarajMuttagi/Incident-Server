@@ -39,7 +39,10 @@ const createComponent = async (req: Request, res: Response) => {
     res.status(201).json(component);
     return;
   } catch (error) {
-    console.error("[CREATE_COMPONENT_ERROR]", error);
+    console.error(
+      "[CREATE_COMPONENT_ERROR] Failed to create component:",
+      error
+    );
     res.status(500).json({ message: "Internal server error" });
     return;
   }
@@ -68,13 +71,16 @@ const updateComponent = async (req: Request, res: Response) => {
     const component = await ComponentService.updateComponent(
       componentId,
       orgId,
-      updateData,
+      updateData
     );
 
     res.json(component);
     return;
   } catch (error) {
-    console.error("[UPDATE_COMPONENT_ERROR]", error);
+    console.error(
+      "[UPDATE_COMPONENT_ERROR] Failed to update component:",
+      error
+    );
     res.status(500).json({ message: "Internal server error" });
     return;
   }
@@ -103,7 +109,10 @@ const deleteComponent = async (req: Request, res: Response) => {
     res.sendStatus(204);
     return;
   } catch (error) {
-    console.error("[DELETE_COMPONENT_ERROR]", error);
+    console.error(
+      "[DELETE_COMPONENT_ERROR] Failed to delete component:",
+      error
+    );
     res.status(500).json({ message: "Internal server error" });
     return;
   }
@@ -138,7 +147,7 @@ const getComponent = async (req: Request, res: Response) => {
     res.json(component);
     return;
   } catch (error) {
-    console.error("[GET_COMPONENT_ERROR]", error);
+    console.error("[GET_COMPONENT_ERROR] Failed to fetch component:", error);
     res.status(500).json({ message: "Internal server error" });
     return;
   }
@@ -159,7 +168,7 @@ const listComponents = async (req: Request, res: Response) => {
     res.json(components);
     return;
   } catch (error) {
-    console.error("[LIST_COMPONENTS_ERROR]", error);
+    console.error("[LIST_COMPONENTS_ERROR] Failed to list components:", error);
     res.status(500).json({ message: "Internal server error" });
     return;
   }
