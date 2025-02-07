@@ -1,34 +1,36 @@
+import { requireAuth } from "@clerk/express";
 import express from "express";
 import {
-  addComponent,
+  addComponents,
   addTimelineUpdate,
   createIncident,
-  getIncidentID,
+  deleteIncidents,
+  detachComponents,
+  getIncidentById,
+  listComponentsAttached,
   listIncidents,
-  removeComponent,
-  updateComponentStatus,
-  updateIncidentDetails,
-  updateIncidentStatus,
+  listTimelineUpdates,
+  updateIncidentById,
 } from "../controllers/incident.controller";
+import requireOrganization from "../middlewares/requireOrganization.middleware";
 
 const IncidentRouter = express.Router();
+IncidentRouter.use(requireAuth());
+IncidentRouter.use(requireOrganization);
 
 // Incident routes
 IncidentRouter.post("/create", createIncident);
 IncidentRouter.get("/list", listIncidents);
-IncidentRouter.get("/:incidentId", getIncidentID);
-IncidentRouter.patch("/:incidentId", updateIncidentDetails);
-IncidentRouter.patch("/:incidentId/status", updateIncidentStatus);
+IncidentRouter.get("/:incidentId", getIncidentById);
+IncidentRouter.patch("/:incidentId", updateIncidentById);
+IncidentRouter.delete("/:incidentId", deleteIncidents);
 
-// Component management routes
-IncidentRouter.post("/:incidentId/components", addComponent);
-IncidentRouter.delete("/:incidentId/components/:componentId", removeComponent);
-IncidentRouter.patch(
-  "/:incidentId/components/:componentId/status",
-  updateComponentStatus,
-);
+// Incident Component routes
+IncidentRouter.post("/:incidentId/components/add", addComponents);
+IncidentRouter.get("/:incidentId/components/list", listComponentsAttached);
+IncidentRouter.delete("/:incidentId/components", detachComponents);
 
-// Timeline routes
-IncidentRouter.post("/:incidentId/timeline", addTimelineUpdate);
-
+//Incident Timline routes
+IncidentRouter.get("/:incidentId/updates/list", listTimelineUpdates);
+IncidentRouter.post("/:incidentId/updates/create", addTimelineUpdate);
 export default IncidentRouter;
