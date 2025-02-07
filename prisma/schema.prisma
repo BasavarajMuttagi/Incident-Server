@@ -24,13 +24,13 @@ model Component {
 model Incident {
   id               String              @id @default(uuid())
   orgId            String
-  userId           String
   title            String
   description      String
   status           IncidentStatus      @default(INVESTIGATING)
   occuredAt        DateTime
   resolvedAt       DateTime?
   createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
   components       IncidentComponent[]
   IncidentTimeline IncidentTimeline[]
 
@@ -40,36 +40,41 @@ model Incident {
 
 model IncidentComponent {
   id          String          @id @default(uuid())
+  orgId       String
   incident    Incident        @relation(fields: [incidentId], references: [id])
   incidentId  String
   component   Component       @relation(fields: [componentId], references: [id])
   componentId String
   status      ComponentStatus
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 
   @@unique([incidentId, componentId])
   @@index([componentId])
   @@index([incidentId])
   @@index([status])
+  @@index([orgId])
 }
 
 model IncidentTimeline {
   id         String         @id @default(uuid())
+  orgId      String
+  userId     String
   message    String
   status     IncidentStatus
   createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
   incident   Incident       @relation(fields: [incidentId], references: [id])
   incidentId String
-  orgId      String
-  userId     String
 
   @@index([orgId])
   @@index([incidentId])
+  @@index([userId])
 }
 
 model Maintenance {
   id          String                 @id @default(uuid())
   orgId       String
-  userId      String
   title       String
   description String
   status      MaintenanceStatus      @default(SCHEDULED)
@@ -86,29 +91,35 @@ model Maintenance {
 
 model MaintenanceComponent {
   id            String          @id @default(uuid())
+  orgId         String
   maintenance   Maintenance     @relation(fields: [maintenanceId], references: [id])
   maintenanceId String
   component     Component       @relation(fields: [componentId], references: [id])
   componentId   String
   status        ComponentStatus
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 
   @@unique([maintenanceId, componentId])
   @@index([componentId])
   @@index([maintenanceId])
+  @@index([orgId])
 }
 
 model MaintenanceTimeline {
   id            String            @id @default(uuid())
+  orgId         String
+  userId        String
   message       String
   status        MaintenanceStatus
   createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
   maintenance   Maintenance       @relation(fields: [maintenanceId], references: [id])
   maintenanceId String
-  orgId         String
-  userId        String
 
   @@index([orgId])
   @@index([maintenanceId])
+  @@index([userId])
 }
 
 enum ComponentStatus {
