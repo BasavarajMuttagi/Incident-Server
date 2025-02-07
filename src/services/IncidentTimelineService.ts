@@ -1,7 +1,7 @@
 import { IncidentStatus } from "@prisma/client";
 import { prisma } from "../../prisma/db";
 
-export class IncidentTimeline {
+export class IncidentTimelineService {
   static async addUpdate(data: {
     message: string;
     status: IncidentStatus;
@@ -45,7 +45,7 @@ export class IncidentTimeline {
     incidentId: string,
     orgId: string,
   ) {
-    return prisma.incidentTimeline.findMany({
+    return prisma.incidentTimeline.deleteMany({
       where: {
         incidentId,
         orgId,

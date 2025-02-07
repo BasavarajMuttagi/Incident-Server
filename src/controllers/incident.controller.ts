@@ -3,7 +3,7 @@ import { Component, Incident } from "@prisma/client";
 import { Request, Response } from "express";
 import { IncidentComponentService } from "../services/IncidentComponentService";
 import { IncidentService } from "../services/IncidentService";
-import { IncidentTimeline } from "../services/IncidentTimelineService";
+import { IncidentTimelineService } from "../services/IncidentTimelineService";
 
 const createIncident = async (req: Request, res: Response) => {
   try {
@@ -211,14 +211,14 @@ const detachComponents = async (req: Request, res: Response) => {
   try {
     const { orgId } = getAuth(req) as { orgId: string };
     const { incidentId } = req.params;
-    const components = req.body.components as Component[];
+    const componentIds = req.body.componentIds as string[];
     if (!incidentId) {
       res.status(400).json({
         message: "Bad Request: Missing incident ID",
       });
       return;
     }
-    const componentIds = components.map((e) => e.id);
+
     const incidents = await IncidentComponentService.detachComponents(
       orgId,
       incidentId,
@@ -229,6 +229,35 @@ const detachComponents = async (req: Request, res: Response) => {
   } catch (error) {
     console.error(
       "[DETACH_COMPONENTS_ERROR] Failed to detach components:",
+      error,
+    );
+    res.status(500).json({ message: "Internal server error" });
+    return;
+  }
+};
+
+const deleteUpdates = async (req: Request, res: Response) => {
+  try {
+    const { orgId } = getAuth(req) as { orgId: string };
+    const { incidentId } = req.params;
+    const incidentUpdateIds = req.body.incidentUpdateIds as string[];
+    if (!incidentId) {
+      res.status(400).json({
+        message: "Bad Request: Missing incident ID",
+      });
+      return;
+    }
+
+    const incidents = await IncidentTimelineService.deleteUpdates(
+      incidentUpdateIds,
+      incidentId,
+      orgId,
+    );
+    res.status(200).json(incidents);
+    return;
+  } catch (error) {
+    console.error(
+      "[DELETE_INCIDENT_UPDATES_ERROR] Failed to delete incident updates:",
       error,
     );
     res.status(500).json({ message: "Internal server error" });
@@ -247,7 +276,10 @@ const listTimelineUpdates = async (req: Request, res: Response) => {
       return;
     }
 
-    const updates = await IncidentTimeline.listUpdates(incidentId, orgId);
+    const updates = await IncidentTimelineService.listUpdates(
+      incidentId,
+      orgId,
+    );
     const userPromises = updates.map(async (update) => {
       const userInfo = await clerkClient.users.getUser(update.userId);
       return {
@@ -282,7 +314,7 @@ const addTimelineUpdate = async (req: Request, res: Response) => {
       return;
     }
 
-    const updates = await IncidentTimeline.addUpdate({
+    const updates = await IncidentTimelineService.addUpdate({
       incidentId,
       message,
       status,
@@ -306,6 +338,7 @@ export {
   addTimelineUpdate,
   createIncident,
   deleteIncidents,
+  deleteUpdates,
   detachComponents,
   getIncidentById,
   listComponentsAttached,
