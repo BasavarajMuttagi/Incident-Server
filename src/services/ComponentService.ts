@@ -7,7 +7,7 @@ export class ComponentService {
   ) {
     const { name, description, status, orgId } = data;
 
-    return await prisma.component.create({
+    return prisma.component.create({
       data: {
         name,
         description,
@@ -22,7 +22,7 @@ export class ComponentService {
     orgId: string,
     data: Pick<Component, "name" | "description" | "status">,
   ) {
-    return await prisma.component.update({
+    return prisma.component.update({
       where: { id, orgId },
       data: {
         ...data,
@@ -31,16 +31,13 @@ export class ComponentService {
   }
 
   static async deleteComponent(id: string, orgId: string) {
-    return await prisma.component.delete({
+    return prisma.component.delete({
       where: { id, orgId },
     });
   }
 
-  static async getComponent(
-    id: string,
-    orgId: string,
-  ): Promise<Component | null> {
-    return await prisma.component.findFirst({
+  static async getComponent(id: string, orgId: string) {
+    return prisma.component.findFirst({
       where: { id, orgId },
       include: {
         incidents: true,
@@ -50,7 +47,7 @@ export class ComponentService {
   }
 
   static async listComponents(orgId: string) {
-    return await prisma.component.findMany({
+    return prisma.component.findMany({
       where: { orgId },
       orderBy: { createdAt: "desc" },
     });
@@ -61,7 +58,7 @@ export class ComponentService {
     orgId: string,
     status: ComponentStatus,
   ) {
-    return await prisma.component.update({
+    return prisma.component.update({
       where: { id, orgId },
       data: {
         status,
