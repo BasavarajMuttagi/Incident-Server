@@ -5,15 +5,8 @@ import { ComponentService } from "../services/ComponentService";
 
 const createComponent = async (req: Request, res: Response) => {
   try {
-    const { orgId, userId } = getAuth(req);
+    const { orgId } = getAuth(req) as { orgId: string; userId: string };
     const { name, description, status } = req.body;
-
-    if (!orgId || !userId) {
-      res.status(401).json({
-        message: "Unauthorized: Missing authentication credentials",
-      });
-      return;
-    }
 
     if (!name) {
       res.status(400).json({
@@ -50,16 +43,9 @@ const createComponent = async (req: Request, res: Response) => {
 
 const updateComponent = async (req: Request, res: Response) => {
   try {
-    const { orgId, userId } = getAuth(req);
+    const { orgId } = getAuth(req) as { orgId: string; userId: string };
     const { componentId } = req.params;
     const updateData = req.body;
-
-    if (!orgId || !userId) {
-      res.status(401).json({
-        message: "Unauthorized: Missing authentication credentials",
-      });
-      return;
-    }
 
     if (!componentId) {
       res.status(400).json({
@@ -88,15 +74,8 @@ const updateComponent = async (req: Request, res: Response) => {
 
 const deleteComponent = async (req: Request, res: Response) => {
   try {
-    const { orgId, userId } = getAuth(req);
+    const { orgId } = getAuth(req) as { orgId: string; userId: string };
     const { componentId } = req.params;
-
-    if (!orgId || !userId) {
-      res.status(401).json({
-        message: "Unauthorized: Missing authentication credentials",
-      });
-      return;
-    }
 
     if (!componentId) {
       res.status(400).json({
@@ -120,15 +99,8 @@ const deleteComponent = async (req: Request, res: Response) => {
 
 const getComponent = async (req: Request, res: Response) => {
   try {
-    const { orgId, userId } = getAuth(req);
+    const { orgId } = getAuth(req) as { orgId: string; userId: string };
     const { componentId } = req.params;
-
-    if (!orgId || !userId) {
-      res.status(401).json({
-        message: "Unauthorized: Missing authentication credentials",
-      });
-      return;
-    }
 
     if (!componentId) {
       res.status(400).json({
@@ -155,15 +127,7 @@ const getComponent = async (req: Request, res: Response) => {
 
 const listComponents = async (req: Request, res: Response) => {
   try {
-    const { orgId, userId } = getAuth(req);
-
-    if (!orgId || !userId) {
-      res.status(401).json({
-        message: "Unauthorized: Missing authentication credentials",
-      });
-      return;
-    }
-
+    const { orgId } = getAuth(req) as { orgId: string; userId: string };
     const components = await ComponentService.listComponents(orgId);
     res.json(components);
     return;

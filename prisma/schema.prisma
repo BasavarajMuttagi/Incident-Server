@@ -122,6 +122,34 @@ model MaintenanceTimeline {
   @@index([userId])
 }
 
+model Subscriber {
+  id                        String             @id @default(uuid())
+  orgId                     String
+  email                     String
+  status                    SubscriptionStatus @default(PENDING)
+  isVerified                Boolean            @default(false)
+  verificationCode          String             @unique
+  unsubscribeCode           String             @unique
+  verificationCodeExpiresAt DateTime
+  verifiedAt                DateTime?
+  subscribedAt              DateTime?
+  unsubscribedAt            DateTime?
+  createdAt                 DateTime           @default(now())
+  updatedAt                 DateTime           @updatedAt
+
+  @@unique([orgId, email])
+  @@index([orgId])
+  @@index([email])
+  @@index([verificationCode])
+  @@index([unsubscribeCode])
+}
+
+enum SubscriptionStatus {
+  PENDING
+  SUBSCRIBED
+  UNSUBSCRIBED
+}
+
 enum ComponentStatus {
   OPERATIONAL
   DEGRADED
