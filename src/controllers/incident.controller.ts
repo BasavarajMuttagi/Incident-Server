@@ -1,5 +1,5 @@
 import { clerkClient, getAuth } from "@clerk/express";
-import { Component, Incident, IncidentTimeline } from "@prisma/client";
+import { ComponentStatus, Incident, IncidentTimeline } from "@prisma/client";
 import { Request, Response } from "express";
 import { IncidentComponentService } from "../services/IncidentComponentService";
 import { IncidentService } from "../services/IncidentService";
@@ -146,7 +146,10 @@ const addComponents = async (req: Request, res: Response) => {
   try {
     const { orgId } = getAuth(req) as { orgId: string };
     const { incidentId } = req.params;
-    const components = req.body.components as Component[];
+    const components = req.body.components as {
+      componentId: string;
+      status: ComponentStatus;
+    }[];
 
     if (!incidentId) {
       res.status(400).json({
@@ -161,10 +164,10 @@ const addComponents = async (req: Request, res: Response) => {
       return;
     }
 
-    const incidentComponents = components.map(({ id, status }) => ({
+    const incidentComponents = components.map(({ componentId, status }) => ({
       incidentId,
       orgId,
-      componentId: id,
+      componentId,
       status,
     }));
 
@@ -200,6 +203,34 @@ const listComponentsAttached = async (req: Request, res: Response) => {
   } catch (error) {
     console.error(
       "[LIST_COMPONENTS_ERROR] Failed to list attached components:",
+      error,
+    );
+    res.status(500).json({ message: "Internal server error" });
+    return;
+  }
+};
+
+const listUnattachedComponents = async (req: Request, res: Response) => {
+  try {
+    const { orgId } = getAuth(req) as { orgId: string };
+    const { incidentId } = req.params;
+
+    if (!incidentId) {
+      res.status(400).json({
+        message: "Bad Request: Missing incident ID",
+      });
+      return;
+    }
+
+    const incidents = await IncidentComponentService.listUnattachedComponents(
+      incidentId,
+      orgId,
+    );
+    res.status(200).json(incidents);
+    return;
+  } catch (error) {
+    console.error(
+      "[LIST_UNATTACHED_COMPONENTS_ERROR] Failed to list unattached components:",
       error,
     );
     res.status(500).json({ message: "Internal server error" });
@@ -416,6 +447,7 @@ export {
   listComponentsAttached,
   listIncidents,
   listTimelineUpdates,
+  listUnattachedComponents,
   modifyUpdate,
   updateIncidentById,
 };

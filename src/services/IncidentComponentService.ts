@@ -41,4 +41,19 @@ export class IncidentComponentService {
       },
     });
   }
+
+  static async listUnattachedComponents(incidentId: string, orgId: string) {
+    return prisma.component.findMany({
+      where: {
+        orgId,
+        NOT: {
+          incidents: {
+            some: {
+              incidentId,
+            },
+          },
+        },
+      },
+    });
+  }
 }

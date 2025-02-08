@@ -12,6 +12,7 @@ import {
   listComponentsAttached,
   listIncidents,
   listTimelineUpdates,
+  listUnattachedComponents,
   modifyUpdate,
   updateIncidentById,
 } from "../controllers/incident.controller";
@@ -29,8 +30,12 @@ IncidentRouter.patch("/:incidentId", updateIncidentById);
 IncidentRouter.post("/:incidentId", deleteIncidents);
 
 // Incident Component routes
-IncidentRouter.post("/:incidentId/components/add", addComponents);
+IncidentRouter.post("/:incidentId/components/attach", addComponents);
 IncidentRouter.get("/:incidentId/components/list", listComponentsAttached);
+IncidentRouter.get(
+  "/:incidentId/components/unattached",
+  listUnattachedComponents,
+);
 IncidentRouter.post("/:incidentId/components/detach", detachComponents);
 
 //Incident Timline routes
