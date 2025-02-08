@@ -15,7 +15,7 @@ export class EmailService {
     verificationCode: string,
     unsubscribeCode: string,
   ) {
-    const verificationLink = `${process.env.FE_URL}/verify?email=${email}&orgId=${orgId}&verificationCode=${verificationCode}`;
+    const verificationLink = `${process.env.FE_BASE_URL}/verify?email=${email}&orgId=${orgId}&verificationCode=${verificationCode}`;
     await this.resend.emails.send({
       from: process.env.EMAIL_FROM!,
       to: email,

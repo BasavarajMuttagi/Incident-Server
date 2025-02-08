@@ -24,7 +24,7 @@ export const BaseTemplate: React.FC<BaseTemplateProps> = ({
   orgId,
   unsubscribeCode,
 }) => {
-  const unsubscribeUrl = `${process.env.APP_URL}/unsubscribe?email=${email}&orgId=${orgId}&unsubscribeCode=${unsubscribeCode}`;
+  const unsubscribeUrl = `${process.env.FE_BASE_URL}/unsubscribe?email=${email}&orgId=${orgId}&unsubscribeCode=${unsubscribeCode}`;
 
   return (
     <Html>

@@ -50,7 +50,7 @@ export async function createSubscriber(req: Request, res: Response) {
       email,
       orgId,
       verificationCode,
-      unsubscribeCode,
+      unsubscribeCode
     );
 
     res.status(201).json(subscriber);
@@ -64,7 +64,7 @@ export async function createSubscriber(req: Request, res: Response) {
 
 export async function verifySubscriber(req: Request, res: Response) {
   try {
-    const { verificationCode, orgId, email } = req.params;
+    const { verificationCode, orgId, email } = req.body;
 
     const subscriber = await prisma.subscriber.findUnique({
       where: { verificationCode, orgId_email: { orgId, email } },
@@ -75,6 +75,10 @@ export async function verifySubscriber(req: Request, res: Response) {
       return;
     }
 
+    if (subscriber.isVerified && subscriber.status === "SUBSCRIBED") {
+      res.status(404).json({ error: "Invalid Request" });
+      return;
+    }
     // Update subscriber status
     const dataNow = new Date();
     const updatedSubscriber = await prisma.subscriber.update({
@@ -91,7 +95,7 @@ export async function verifySubscriber(req: Request, res: Response) {
     await EmailService.sendSubscriptionConfirmation(
       subscriber.email,
       subscriber.orgId,
-      subscriber.unsubscribeCode,
+      subscriber.unsubscribeCode
     );
 
     res.json(updatedSubscriber);
@@ -105,7 +109,7 @@ export async function verifySubscriber(req: Request, res: Response) {
 
 export async function unsubscribeSubscriber(req: Request, res: Response) {
   try {
-    const { unsubscribeCode, orgId, email } = req.params;
+    const { unsubscribeCode, orgId, email } = req.body;
     const subscriber = await prisma.subscriber.findUnique({
       where: {
         unsubscribeCode,
@@ -118,6 +122,11 @@ export async function unsubscribeSubscriber(req: Request, res: Response) {
 
     if (!subscriber) {
       res.status(404).json({ error: "Invalid unsubscribe code/ subscriber" });
+      return;
+    }
+
+    if (subscriber.isVerified === false || subscriber.status !== "SUBSCRIBED") {
+      res.status(404).json({ error: "Invalid Request" });
       return;
     }
 

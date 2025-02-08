@@ -13,8 +13,8 @@ const SubscriberRouter = Router();
 SubscriberRouter.use(requireAuth());
 SubscriberRouter.use(requireOrganization);
 SubscriberRouter.post("/", createSubscriber);
-SubscriberRouter.post("/verify/:verificationCode", verifySubscriber);
-SubscriberRouter.post("/unsubscribe/:unsubscribeCode", unsubscribeSubscriber);
+SubscriberRouter.post("/verify", verifySubscriber);
+SubscriberRouter.post("/unsubscribe", unsubscribeSubscriber);
 SubscriberRouter.get("/list", listSubscribers);
 SubscriberRouter.delete("/:id", deleteSubscriber);
 
