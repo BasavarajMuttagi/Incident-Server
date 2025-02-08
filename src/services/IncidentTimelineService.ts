@@ -55,4 +55,23 @@ export class IncidentTimelineService {
       },
     });
   }
+
+  static async modifyUpdate(
+    incidentUpdateId: string,
+    incidentId: string,
+    orgId: string,
+    data: {
+      message?: string;
+      status?: IncidentStatus;
+    },
+  ) {
+    return prisma.incidentTimeline.update({
+      where: {
+        id: incidentUpdateId,
+        incidentId,
+        orgId,
+      },
+      data,
+    });
+  }
 }

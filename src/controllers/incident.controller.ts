@@ -1,5 +1,5 @@
 import { clerkClient, getAuth } from "@clerk/express";
-import { Component, Incident } from "@prisma/client";
+import { Component, Incident, IncidentTimeline } from "@prisma/client";
 import { Request, Response } from "express";
 import { IncidentComponentService } from "../services/IncidentComponentService";
 import { IncidentService } from "../services/IncidentService";
@@ -236,7 +236,7 @@ const detachComponents = async (req: Request, res: Response) => {
   }
 };
 
-const deleteUpdates = async (req: Request, res: Response) => {
+const deleteTimelineUpdates = async (req: Request, res: Response) => {
   try {
     const { orgId } = getAuth(req) as { orgId: string };
     const { incidentId } = req.params;
@@ -333,16 +333,89 @@ const addTimelineUpdate = async (req: Request, res: Response) => {
   }
 };
 
+const getTimelineUpdate = async (req: Request, res: Response) => {
+  try {
+    const { orgId } = getAuth(req) as { orgId: string; userId: string };
+    const { incidentUpdateId, incidentId } = req.params;
+
+    if (!incidentId) {
+      res.status(400).json({
+        message: "Bad Request: Missing incident ID",
+      });
+      return;
+    }
+
+    if (!incidentUpdateId) {
+      res.status(400).json({
+        message: "Bad Request: Missing incidentUpdateId",
+      });
+      return;
+    }
+    const update = await IncidentTimelineService.getUpdate(
+      incidentUpdateId,
+      incidentId,
+      orgId,
+    );
+    res.status(200).json(update);
+    return;
+  } catch (error) {
+    console.error(
+      "[GET_TIMELINE_UPDATE_ERROR] Failed to get timeline update:",
+      error,
+    );
+    res.status(500).json({ message: "Internal server error" });
+    return;
+  }
+};
+
+const modifyUpdate = async (req: Request, res: Response) => {
+  try {
+    const { orgId } = getAuth(req) as { orgId: string; userId: string };
+    const { incidentUpdateId, incidentId } = req.params;
+    const data = req.body as Pick<IncidentTimeline, "message" | "status">;
+
+    if (!incidentId) {
+      res.status(400).json({
+        message: "Bad Request: Missing incident ID",
+      });
+      return;
+    }
+
+    if (!incidentUpdateId) {
+      res.status(400).json({
+        message: "Bad Request: Missing incidentUpdateId",
+      });
+      return;
+    }
+    const update = await IncidentTimelineService.modifyUpdate(
+      incidentUpdateId,
+      incidentId,
+      orgId,
+      data,
+    );
+    res.status(200).json(update);
+    return;
+  } catch (error) {
+    console.error(
+      "[GET_TIMELINE_UPDATE_ERROR] Failed to get timeline update:",
+      error,
+    );
+    res.status(500).json({ message: "Internal server error" });
+    return;
+  }
+};
 export {
   addComponents,
   addTimelineUpdate,
   createIncident,
   deleteIncidents,
-  deleteUpdates,
+  deleteTimelineUpdates,
   detachComponents,
   getIncidentById,
+  getTimelineUpdate,
   listComponentsAttached,
   listIncidents,
   listTimelineUpdates,
+  modifyUpdate,
   updateIncidentById,
 };

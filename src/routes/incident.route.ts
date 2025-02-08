@@ -5,12 +5,14 @@ import {
   addTimelineUpdate,
   createIncident,
   deleteIncidents,
-  deleteUpdates,
+  deleteTimelineUpdates,
   detachComponents,
   getIncidentById,
+  getTimelineUpdate,
   listComponentsAttached,
   listIncidents,
   listTimelineUpdates,
+  modifyUpdate,
   updateIncidentById,
 } from "../controllers/incident.controller";
 import requireOrganization from "../middlewares/requireOrganization.middleware";
@@ -34,6 +36,8 @@ IncidentRouter.post("/:incidentId/components/detach", detachComponents);
 //Incident Timline routes
 IncidentRouter.get("/:incidentId/updates/list", listTimelineUpdates);
 IncidentRouter.post("/:incidentId/updates/create", addTimelineUpdate);
-IncidentRouter.post("/:incidentId/updates/delete", deleteUpdates);
+IncidentRouter.post("/:incidentId/updates/delete", deleteTimelineUpdates);
+IncidentRouter.get("/:incidentId/updates/:incidentUpdateId", getTimelineUpdate);
+IncidentRouter.patch("/:incidentId/updates/:incidentUpdateId", modifyUpdate);
 
 export default IncidentRouter;
