@@ -2,6 +2,7 @@ import { getAuth } from "@clerk/express";
 import { ComponentStatus } from "@prisma/client";
 import { Request, Response } from "express";
 import { ComponentService } from "../services/ComponentService";
+import { IncidentComponentService } from "../services/IncidentComponentService";
 
 const createComponent = async (req: Request, res: Response) => {
   try {
@@ -128,9 +129,31 @@ const getComponent = async (req: Request, res: Response) => {
 const listComponents = async (req: Request, res: Response) => {
   try {
     const { orgId } = getAuth(req) as { orgId: string; userId: string };
-    const components = await ComponentService.listComponents(orgId);
-    res.json(components);
-    return;
+
+    try {
+      // Get initial components
+      const components = await ComponentService.listComponents(orgId);
+
+      // Use Promise.all with map instead of forEach
+      const componentsWithStatus = await Promise.all(
+        components.map(async (element) => {
+          const status = await IncidentComponentService.getComponentStatus(
+            element.id,
+            orgId,
+          );
+          if (status === "OPERATIONAL") {
+            return element;
+          }
+          return { ...element, status };
+        }),
+      );
+
+      res.json(componentsWithStatus);
+    } catch (error) {
+      // Error handling
+      console.error("Error fetching component statuses:", error);
+      res.status(500).json({ error: "Failed to fetch component statuses" });
+    }
   } catch (error) {
     console.error("[LIST_COMPONENTS_ERROR] Failed to list components:", error);
     res.status(500).json({ message: "Internal server error" });

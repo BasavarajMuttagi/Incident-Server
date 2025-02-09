@@ -1,6 +1,6 @@
 import { ComponentStatus } from "@prisma/client";
+import { getComponentStatus } from "@prisma/client/sql";
 import { prisma } from "../../prisma/db";
-
 export class IncidentComponentService {
   static async addComponents(
     data: {
@@ -55,5 +55,12 @@ export class IncidentComponentService {
         },
       },
     });
+  }
+
+  static async getComponentStatus(componentId: string, orgId: string) {
+    const status = await prisma.$queryRawTyped(
+      getComponentStatus(componentId, orgId),
+    );
+    return status.length ? status[0].status : "OPERATIONAL";
   }
 }

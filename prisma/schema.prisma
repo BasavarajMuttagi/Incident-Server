@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["typedSql"]
 }
 
 datasource db {
@@ -34,6 +35,7 @@ model Incident {
   components       IncidentComponent[]
   IncidentTimeline IncidentTimeline[]
 
+  @@index([orgId, status])
   @@index([orgId])
   @@index([status])
 }
@@ -50,6 +52,8 @@ model IncidentComponent {
   updatedAt   DateTime        @updatedAt
 
   @@unique([incidentId, componentId])
+  @@index([orgId, incidentId])
+  @@index([orgId, componentId])
   @@index([componentId])
   @@index([incidentId])
   @@index([status])
