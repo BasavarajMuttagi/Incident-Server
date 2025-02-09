@@ -24,9 +24,12 @@ app.use("/api/v1/subscriber", SubscriberRouter);
 
 io.on("connection", async (socket) => {
   console.log(socket.id, "connected");
-
+  socket.on("join", (orgId) => {
+    socket.join(orgId);
+  });
   socket.on("disconnect", async () => {
     console.log("User disconnected");
+    socket.rooms.clear();
   });
 });
 httpServer.listen(port, async () => {
