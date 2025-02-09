@@ -50,7 +50,7 @@ export async function createSubscriber(req: Request, res: Response) {
       email,
       orgId,
       verificationCode,
-      unsubscribeCode
+      unsubscribeCode,
     );
 
     res.status(201).json(subscriber);
@@ -95,7 +95,7 @@ export async function verifySubscriber(req: Request, res: Response) {
     await EmailService.sendSubscriptionConfirmation(
       subscriber.email,
       subscriber.orgId,
-      subscriber.unsubscribeCode
+      subscriber.unsubscribeCode,
     );
 
     res.json(updatedSubscriber);
@@ -153,7 +153,7 @@ export async function unsubscribeSubscriber(req: Request, res: Response) {
 
 export async function listSubscribers(req: Request, res: Response) {
   try {
-    const { orgId } = req.query;
+    const { orgId } = getAuth(req) as { orgId: string };
 
     const subscribers = await prisma.subscriber.findMany({
       where: { orgId: orgId as string },
@@ -171,8 +171,8 @@ export async function listSubscribers(req: Request, res: Response) {
 
 export async function deleteSubscriber(req: Request, res: Response) {
   try {
+    const { orgId } = getAuth(req) as { orgId: string };
     const { id } = req.params;
-    const { orgId } = req.query;
 
     const subscriber = await prisma.subscriber.findFirst({
       where: {
