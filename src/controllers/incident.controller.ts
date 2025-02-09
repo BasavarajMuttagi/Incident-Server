@@ -1,6 +1,7 @@
 import { clerkClient, getAuth } from "@clerk/express";
 import { ComponentStatus, Incident, IncidentTimeline } from "@prisma/client";
 import { Request, Response } from "express";
+import { io } from "../..";
 import { IncidentComponentService } from "../services/IncidentComponentService";
 import { IncidentService } from "../services/IncidentService";
 import { IncidentTimelineService } from "../services/IncidentTimelineService";
@@ -28,7 +29,8 @@ const createIncident = async (req: Request, res: Response) => {
       userId,
     });
 
-    res.status(201).json(incident);
+    io.to(incident.orgId).emit("new-incident", incident);
+    res.sendStatus(201);
     return;
   } catch (error) {
     console.error("[CREATE_INCIDENT_ERROR] Failed to create incident:", error);
@@ -93,8 +95,8 @@ const updateIncidentById = async (req: Request, res: Response) => {
         ? new Date(updateData.resolvedAt)
         : null,
     });
-
-    res.status(200).json(incident);
+    io.to(incident.orgId).emit("incident-updated", incident);
+    res.sendStatus(200);
     return;
   } catch (error) {
     console.error("[UPDATE_INCIDENT_ERROR] Failed to update incident:", error);
@@ -352,6 +354,7 @@ const addTimelineUpdate = async (req: Request, res: Response) => {
       orgId,
       userId,
     });
+    io.to(updates.orgId).emit("timeline-updated", updates);
     res.status(200).json(updates);
     return;
   } catch (error) {

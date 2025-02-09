@@ -1,6 +1,7 @@
 import { getAuth } from "@clerk/express";
 import { ComponentStatus } from "@prisma/client";
 import { Request, Response } from "express";
+import { io } from "../..";
 import { ComponentService } from "../services/ComponentService";
 import { IncidentComponentService } from "../services/IncidentComponentService";
 
@@ -29,7 +30,7 @@ const createComponent = async (req: Request, res: Response) => {
       status,
       orgId,
     });
-
+    io.to(component.orgId).emit("new-component", component);
     res.status(201).json(component);
     return;
   } catch (error) {
@@ -60,7 +61,7 @@ const updateComponent = async (req: Request, res: Response) => {
       orgId,
       updateData,
     );
-
+    io.to(component.orgId).emit("component-update", component);
     res.json(component);
     return;
   } catch (error) {
@@ -85,7 +86,8 @@ const deleteComponent = async (req: Request, res: Response) => {
       return;
     }
 
-    await ComponentService.deleteComponent(componentId, orgId);
+    const data = await ComponentService.deleteComponent(componentId, orgId);
+    io.to(data.orgId).emit("component-delete", data);
     res.sendStatus(204);
     return;
   } catch (error) {

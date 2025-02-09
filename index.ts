@@ -7,6 +7,7 @@ import { Server } from "socket.io";
 import ComponentRouter from "./src/routes/component.route";
 import IncidentRouter from "./src/routes/incident.route";
 import SubscriberRouter from "./src/routes/subscriber.route";
+import { PublicService } from "./src/services/PublicService";
 dotenv.config();
 const port = process.env.PORT || 3000;
 const app = express();
@@ -24,14 +25,26 @@ app.use("/api/v1/subscriber", SubscriberRouter);
 
 io.on("connection", async (socket) => {
   console.log(socket.id, "connected");
-  socket.on("join", (orgId) => {
+  socket.on("join", async (orgId) => {
     socket.join(orgId);
   });
+
+  socket.on("get-components", async (orgId, cb) => {
+    const data = await PublicService.getComponents(orgId);
+    cb(data);
+  });
+
+  socket.on("get-incidents", async (orgId, cb) => {
+    const data = await PublicService.getIncidents(orgId);
+    cb(data);
+  });
+
   socket.on("disconnect", async () => {
     console.log("User disconnected");
     socket.rooms.clear();
   });
 });
+
 httpServer.listen(port, async () => {
   console.log(`[server]: Server is running at http://localhost:${port}`);
 });

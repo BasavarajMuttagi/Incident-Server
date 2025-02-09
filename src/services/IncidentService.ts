@@ -20,6 +20,9 @@ export class IncidentService {
           occuredAt: data.occuredAt,
           orgId: data.orgId,
         },
+        include: {
+          IncidentTimeline: true,
+        },
       });
 
       if (data.components?.length) {
@@ -32,16 +35,6 @@ export class IncidentService {
           })),
         });
       }
-
-      await tx.incidentTimeline.create({
-        data: {
-          incidentId: incident.id,
-          message: data.description,
-          status: IncidentStatus.INVESTIGATING,
-          orgId: data.orgId,
-          userId: data.userId,
-        },
-      });
 
       return incident;
     });
@@ -76,6 +69,9 @@ export class IncidentService {
         orgId,
       },
       data: { ...rest },
+      include: {
+        IncidentTimeline: true,
+      },
     });
   }
 

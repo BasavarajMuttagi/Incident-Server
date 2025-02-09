@@ -43,9 +43,9 @@ model Incident {
 model IncidentComponent {
   id          String          @id @default(uuid())
   orgId       String
-  incident    Incident        @relation(fields: [incidentId], references: [id])
+  incident    Incident        @relation(fields: [incidentId], references: [id], onDelete: Cascade)
   incidentId  String
-  component   Component       @relation(fields: [componentId], references: [id])
+  component   Component       @relation(fields: [componentId], references: [id], onDelete: Cascade)
   componentId String
   status      ComponentStatus
   createdAt   DateTime        @default(now())
@@ -68,7 +68,7 @@ model IncidentTimeline {
   status     IncidentStatus
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
-  incident   Incident       @relation(fields: [incidentId], references: [id])
+  incident   Incident       @relation(fields: [incidentId], references: [id], onDelete: Cascade)
   incidentId String
 
   @@index([orgId])
@@ -96,9 +96,9 @@ model Maintenance {
 model MaintenanceComponent {
   id            String          @id @default(uuid())
   orgId         String
-  maintenance   Maintenance     @relation(fields: [maintenanceId], references: [id])
+  maintenance   Maintenance     @relation(fields: [maintenanceId], references: [id], onDelete: Cascade)
   maintenanceId String
-  component     Component       @relation(fields: [componentId], references: [id])
+  component     Component       @relation(fields: [componentId], references: [id], onDelete: Cascade)
   componentId   String
   status        ComponentStatus
   createdAt     DateTime        @default(now())
@@ -118,7 +118,7 @@ model MaintenanceTimeline {
   status        MaintenanceStatus
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
-  maintenance   Maintenance       @relation(fields: [maintenanceId], references: [id])
+  maintenance   Maintenance       @relation(fields: [maintenanceId], references: [id], onDelete: Cascade)
   maintenanceId String
 
   @@index([orgId])
