@@ -8,13 +8,13 @@ export async function createSubscriber(req: Request, res: Response) {
   try {
     const { orgId } = getAuth(req) as { orgId: string };
     const { email } = req.body;
-    if (!email) {
+    if (!email || !orgId) {
       res.status(400).json({
-        message: "Bad Request: Email Missing",
+        message: "Bad Request: Email and Organization ID required",
       });
       return;
     }
-    // Check if subscriber exists
+
     const existingSubscriber = await prisma.subscriber.findUnique({
       where: {
         orgId_email: {
@@ -25,16 +25,83 @@ export async function createSubscriber(req: Request, res: Response) {
     });
 
     if (existingSubscriber) {
-      res.status(400).json({ error: "Email already subscribed" });
+      // If verified but unsubscribed, allow resubscription
+      if (
+        existingSubscriber.isVerified &&
+        existingSubscriber.status === "UNSUBSCRIBED"
+      ) {
+        await prisma.subscriber.update({
+          where: {
+            orgId_email: {
+              orgId,
+              email,
+            },
+          },
+          data: {
+            status: "SUBSCRIBED",
+            subscribedAt: new Date(),
+            unsubscribedAt: null,
+          },
+        });
+        res.status(200).json({ message: "Email re-subscribed successfully" });
+        return;
+      }
+
+      // If verified and already subscribed, return error
+      if (
+        existingSubscriber.isVerified &&
+        existingSubscriber.status === "SUBSCRIBED"
+      ) {
+        res.status(400).json({ message: "Email already subscribed" });
+        return;
+      }
+
+      // If pending and verification code expired, send new verification
+      if (
+        !existingSubscriber.isVerified &&
+        existingSubscriber.verificationCodeExpiresAt < new Date()
+      ) {
+        const verificationCode = generateToken();
+        const unsubscribeCode = generateToken();
+
+        await prisma.subscriber.update({
+          where: {
+            orgId_email: {
+              orgId,
+              email,
+            },
+          },
+          data: {
+            verificationCode,
+            unsubscribeCode,
+            verificationCodeExpiresAt: new Date(Date.now() + 15 * 60 * 1000),
+            status: "PENDING",
+          },
+        });
+
+        await EmailService.sendVerificationEmail(
+          email,
+          orgId,
+          verificationCode,
+          unsubscribeCode,
+        );
+
+        res.status(200).json({ message: "New verification email sent" });
+        return;
+      }
+
+      // If pending and verification code still valid
+      res.status(400).json({
+        message: "Verification email already sent. Please check your inbox.",
+      });
       return;
     }
 
-    // Generate verification and unsubscribe codes
+    // Create new subscriber
     const verificationCode = generateToken();
     const unsubscribeCode = generateToken();
 
-    // Create subscriber
-    const subscriber = await prisma.subscriber.create({
+    await prisma.subscriber.create({
       data: {
         email,
         orgId,
@@ -45,7 +112,6 @@ export async function createSubscriber(req: Request, res: Response) {
       },
     });
 
-    // Send verification email
     await EmailService.sendVerificationEmail(
       email,
       orgId,
@@ -53,11 +119,135 @@ export async function createSubscriber(req: Request, res: Response) {
       unsubscribeCode,
     );
 
-    res.status(201).json(subscriber);
+    res.status(201).json({ message: "Verification email sent successfully" });
     return;
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Subscription error:", error);
+    res.status(500).json({ message: "Internal server error" });
+    return;
+  }
+}
+
+export async function createSubscriberPublic(req: Request, res: Response) {
+  try {
+    const { email, orgId } = req.body;
+
+    if (!email || !orgId) {
+      res.status(400).json({
+        message: "Bad Request: Email and Organization ID required",
+      });
+      return;
+    }
+
+    const existingSubscriber = await prisma.subscriber.findUnique({
+      where: {
+        orgId_email: {
+          orgId,
+          email,
+        },
+      },
+    });
+
+    if (existingSubscriber) {
+      // If verified but unsubscribed, allow resubscription
+      if (
+        existingSubscriber.isVerified &&
+        existingSubscriber.status === "UNSUBSCRIBED"
+      ) {
+        await prisma.subscriber.update({
+          where: {
+            orgId_email: {
+              orgId,
+              email,
+            },
+          },
+          data: {
+            status: "SUBSCRIBED",
+            subscribedAt: new Date(),
+            unsubscribedAt: null,
+          },
+        });
+        res.status(200).json({ message: "Email re-subscribed successfully" });
+        return;
+      }
+
+      // If verified and already subscribed, return error
+      if (
+        existingSubscriber.isVerified &&
+        existingSubscriber.status === "SUBSCRIBED"
+      ) {
+        res.status(400).json({ message: "Email already subscribed" });
+        return;
+      }
+
+      // If pending and verification code expired, send new verification
+      if (
+        !existingSubscriber.isVerified &&
+        existingSubscriber.verificationCodeExpiresAt < new Date()
+      ) {
+        const verificationCode = generateToken();
+        const unsubscribeCode = generateToken();
+
+        await prisma.subscriber.update({
+          where: {
+            orgId_email: {
+              orgId,
+              email,
+            },
+          },
+          data: {
+            verificationCode,
+            unsubscribeCode,
+            verificationCodeExpiresAt: new Date(Date.now() + 15 * 60 * 1000),
+            status: "PENDING",
+          },
+        });
+
+        await EmailService.sendVerificationEmail(
+          email,
+          orgId,
+          verificationCode,
+          unsubscribeCode,
+        );
+
+        res.status(200).json({ message: "New verification email sent" });
+        return;
+      }
+
+      // If pending and verification code still valid
+      res.status(400).json({
+        message: "Verification email already sent. Please check your inbox.",
+      });
+      return;
+    }
+
+    // Create new subscriber
+    const verificationCode = generateToken();
+    const unsubscribeCode = generateToken();
+
+    await prisma.subscriber.create({
+      data: {
+        email,
+        orgId,
+        verificationCode,
+        unsubscribeCode,
+        status: "PENDING",
+        verificationCodeExpiresAt: new Date(Date.now() + 15 * 60 * 1000),
+      },
+    });
+
+    await EmailService.sendVerificationEmail(
+      email,
+      orgId,
+      verificationCode,
+      unsubscribeCode,
+    );
+
+    res.status(201).json({ message: "Verification email sent successfully" });
+    return;
+  } catch (error) {
+    console.error("Subscription error:", error);
+    res.status(500).json({ message: "Internal server error" });
     return;
   }
 }
@@ -67,21 +257,21 @@ export async function verifySubscriber(req: Request, res: Response) {
     const { verificationCode, orgId, email } = req.body;
 
     const subscriber = await prisma.subscriber.findUnique({
-      where: { verificationCode, orgId_email: { orgId, email } },
+      where: { verificationCode, email, orgId, orgId_email: { orgId, email } },
     });
 
     if (!subscriber) {
-      res.status(404).json({ error: "Invalid verification code/ subscriber" });
+      res.status(404).json({ message: "Invalid verification code/subscriber" });
       return;
     }
 
     if (subscriber.isVerified && subscriber.status === "SUBSCRIBED") {
-      res.status(404).json({ error: "Invalid Request" });
+      res.status(404).json({ message: "Invalid Request" });
       return;
     }
     // Update subscriber status
     const dataNow = new Date();
-    const updatedSubscriber = await prisma.subscriber.update({
+    await prisma.subscriber.update({
       where: { id: subscriber.id },
       data: {
         status: "SUBSCRIBED",
@@ -98,11 +288,11 @@ export async function verifySubscriber(req: Request, res: Response) {
       subscriber.unsubscribeCode,
     );
 
-    res.json(updatedSubscriber);
+    res.status(200).json({ message: "subscriber updated" });
     return;
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ message: "Internal server error" });
     return;
   }
 }
@@ -113,6 +303,8 @@ export async function unsubscribeSubscriber(req: Request, res: Response) {
     const subscriber = await prisma.subscriber.findUnique({
       where: {
         unsubscribeCode,
+        email,
+        orgId,
         orgId_email: {
           orgId,
           email,
@@ -121,17 +313,17 @@ export async function unsubscribeSubscriber(req: Request, res: Response) {
     });
 
     if (!subscriber) {
-      res.status(404).json({ error: "Invalid unsubscribe code/ subscriber" });
+      res.status(404).json({ message: "Invalid unsubscribe code/subscriber" });
       return;
     }
 
     if (subscriber.isVerified === false || subscriber.status !== "SUBSCRIBED") {
-      res.status(404).json({ error: "Invalid Request" });
+      res.status(404).json({ message: "Invalid Request" });
       return;
     }
 
     // Update subscriber status
-    const updatedSubscriber = await prisma.subscriber.update({
+    await prisma.subscriber.update({
       where: { id: subscriber.id },
       data: {
         status: "UNSUBSCRIBED",
@@ -142,11 +334,11 @@ export async function unsubscribeSubscriber(req: Request, res: Response) {
     // Send unsubscribe confirmation
     await EmailService.sendUnsubscribeConfirmation(subscriber.email);
 
-    res.json(updatedSubscriber);
+    res.status(200).json({ message: "unsubscribe confirmation sent" });
     return;
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ message: "Internal server error" });
     return;
   }
 }
@@ -160,11 +352,11 @@ export async function listSubscribers(req: Request, res: Response) {
       orderBy: { createdAt: "desc" },
     });
 
-    res.json(subscribers);
+    res.status(200).json(subscribers);
     return;
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ message: "Internal server error" });
     return;
   }
 }
@@ -182,7 +374,7 @@ export async function deleteSubscriber(req: Request, res: Response) {
     });
 
     if (!subscriber) {
-      res.status(404).json({ error: "Subscriber not found" });
+      res.status(404).json({ message: "Subscriber not found" });
       return;
     }
 
@@ -190,11 +382,11 @@ export async function deleteSubscriber(req: Request, res: Response) {
       where: { id },
     });
 
-    res.json({ message: "Subscriber deleted successfully" });
+    res.sendStatus(204);
     return;
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ message: "Internal server error" });
     return;
   }
 }
