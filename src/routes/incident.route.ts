@@ -4,7 +4,7 @@ import {
   addComponents,
   addTimelineUpdate,
   createIncident,
-  deleteIncidents,
+  deleteIncident,
   deleteTimelineUpdates,
   detachComponents,
   getIncidentById,
@@ -27,7 +27,7 @@ IncidentRouter.post("/create", createIncident);
 IncidentRouter.get("/list", listIncidents);
 IncidentRouter.get("/:incidentId", getIncidentById);
 IncidentRouter.patch("/:incidentId", updateIncidentById);
-IncidentRouter.post("/:incidentId", deleteIncidents);
+IncidentRouter.delete("/:incidentId", deleteIncident);
 
 // Incident Component routes
 IncidentRouter.post("/:incidentId/components/attach", addComponents);

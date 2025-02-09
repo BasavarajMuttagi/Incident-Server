@@ -75,12 +75,10 @@ export class IncidentService {
     });
   }
 
-  static async deleteIncidents(incidentIds: string[], orgId: string) {
+  static async deleteIncident(incidentId: string, orgId: string) {
     return prisma.incident.deleteMany({
       where: {
-        id: {
-          in: [...incidentIds],
-        },
+        id: incidentId,
         orgId,
       },
     });

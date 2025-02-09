@@ -105,20 +105,11 @@ const updateIncidentById = async (req: Request, res: Response) => {
   }
 };
 
-const deleteIncidents = async (req: Request, res: Response) => {
+const deleteIncident = async (req: Request, res: Response) => {
   try {
     const { orgId } = getAuth(req) as { orgId: string };
-    const { incidentId: id } = req.params;
-    const { incidentIds } = req.body;
-
-    if (!id) {
-      res.status(400).json({
-        message: "Bad Request: Missing incident ID",
-      });
-      return;
-    }
-
-    const incident = await IncidentService.deleteIncidents(incidentIds, orgId);
+    const { incidentId } = req.params;
+    const incident = await IncidentService.deleteIncident(incidentId, orgId);
     res.status(200).json(incident);
     return;
   } catch (error) {
@@ -442,7 +433,7 @@ export {
   addComponents,
   addTimelineUpdate,
   createIncident,
-  deleteIncidents,
+  deleteIncident,
   deleteTimelineUpdates,
   detachComponents,
   getIncidentById,
