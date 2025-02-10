@@ -5,7 +5,7 @@
   "scripts": {
     "dev:email": "email dev --dir src/emails",
     "build": "npx tsc",
-    "postinstall": "prisma generate --no-engine",
+    "postinstall": "prisma generate --no-engine --sql",
     "start": "node dist/index.js",
     "dev": "nodemon index.ts",
     "lint": "eslint .",
