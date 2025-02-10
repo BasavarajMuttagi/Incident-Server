@@ -1,11 +1,11 @@
-import { MaintenanceStatus, MaintenanceTimeline } from "@prisma/client";
+import { IncidentStatus, MaintenanceTimeline } from "@prisma/client";
 import { prisma } from "../../prisma/db";
 
 export class MaintenanceTimelineService {
   static async addUpdate(data: {
     maintenanceId: string;
     message: string;
-    status: MaintenanceStatus;
+    status: IncidentStatus;
     orgId: string;
     userId: string;
   }) {

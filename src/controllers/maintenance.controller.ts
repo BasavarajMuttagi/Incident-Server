@@ -1,8 +1,7 @@
 import { clerkClient, getAuth } from "@clerk/express";
-import { ComponentStatus, MaintenanceTimeline } from "@prisma/client";
+import { MaintenanceTimeline } from "@prisma/client";
 import { Request, Response } from "express";
 import { io } from "../..";
-import { MaintenanceComponentService } from "../services/MaintenanceComponentService";
 import { MaintenanceService } from "../services/MaintenanceService";
 import { MaintenanceTimelineService } from "../services/MaintenanceTimelineService";
 
@@ -166,140 +165,6 @@ const listMaintenances = async (req: Request, res: Response) => {
   }
 };
 
-const addComponents = async (req: Request, res: Response) => {
-  try {
-    const { orgId } = getAuth(req) as { orgId: string };
-    const { maintenanceId } = req.params;
-    const components = req.body.components as {
-      componentId: string;
-      status: ComponentStatus;
-    }[];
-
-    if (!maintenanceId) {
-      res.status(400).json({
-        message: "Bad Request: Missing maintenance ID",
-      });
-      return;
-    }
-    if (!components || components.length === 0) {
-      res.status(400).json({
-        message: "Bad Request: Missing components",
-      });
-      return;
-    }
-
-    const maintenanceComponents = components.map(({ componentId, status }) => ({
-      maintenanceId,
-      orgId,
-      componentId,
-      status,
-    }));
-
-    const result = await MaintenanceComponentService.addComponents(
-      maintenanceComponents,
-    );
-    res.status(200).json(result);
-    return;
-  } catch (error) {
-    console.error("[ADD_COMPONENTS_ERROR] Failed to add components:", error);
-    res.status(500).json({ message: "Internal server error" });
-    return;
-  }
-};
-
-const listComponentsAttached = async (req: Request, res: Response) => {
-  try {
-    const { orgId } = getAuth(req) as { orgId: string };
-    const { maintenanceId } = req.params;
-
-    if (!maintenanceId) {
-      res.status(400).json({
-        message: "Bad Request: Missing maintenance ID",
-      });
-      return;
-    }
-
-    const components = await MaintenanceComponentService.listComponentsAttached(
-      maintenanceId,
-      orgId,
-    );
-    res.status(200).json(components);
-    return;
-  } catch (error) {
-    console.error(
-      "[LIST_COMPONENTS_ERROR] Failed to list attached components:",
-      error,
-    );
-    res.status(500).json({ message: "Internal server error" });
-    return;
-  }
-};
-
-const listUnattachedComponents = async (req: Request, res: Response) => {
-  try {
-    const { orgId } = getAuth(req) as { orgId: string };
-    const { maintenanceId } = req.params;
-
-    if (!maintenanceId) {
-      res.status(400).json({
-        message: "Bad Request: Missing maintenance ID",
-      });
-      return;
-    }
-
-    const components =
-      await MaintenanceComponentService.listUnattachedComponents(
-        maintenanceId,
-        orgId,
-      );
-    res.status(200).json(components);
-    return;
-  } catch (error) {
-    console.error(
-      "[LIST_UNATTACHED_COMPONENTS_ERROR] Failed to list unattached components:",
-      error,
-    );
-    res.status(500).json({ message: "Internal server error" });
-    return;
-  }
-};
-
-const detachComponents = async (req: Request, res: Response) => {
-  try {
-    const { orgId } = getAuth(req) as { orgId: string };
-    const { maintenanceId } = req.params;
-    const componentIds = req.body.componentIds as string[];
-
-    if (!maintenanceId) {
-      res.status(400).json({
-        message: "Bad Request: Missing maintenance ID",
-      });
-      return;
-    }
-    if (!componentIds || componentIds.length === 0) {
-      res.status(400).json({
-        message: "Bad Request: Missing component IDs",
-      });
-      return;
-    }
-    const result = await MaintenanceComponentService.detachComponents(
-      orgId,
-      maintenanceId,
-      componentIds,
-    );
-
-    res.status(200).json(result);
-    return;
-  } catch (error) {
-    console.error(
-      "[DETACH_COMPONENTS_ERROR] Failed to detach components:",
-      error,
-    );
-    res.status(500).json({ message: "Internal server error" });
-    return;
-  }
-};
-
 const listTimelineUpdates = async (req: Request, res: Response) => {
   try {
     const { orgId } = getAuth(req) as { orgId: string };
@@ -381,7 +246,7 @@ const deleteTimelineUpdates = async (req: Request, res: Response) => {
   try {
     const { orgId } = getAuth(req) as { orgId: string };
     const { maintenanceId } = req.params;
-    const updateIds = req.body.updateIds as string[];
+    const maintenanceUpdateIds = req.body.maintenanceUpdateIds as string[];
 
     if (!maintenanceId) {
       res.status(400).json({
@@ -389,14 +254,14 @@ const deleteTimelineUpdates = async (req: Request, res: Response) => {
       });
       return;
     }
-    if (!updateIds || updateIds.length === 0) {
+    if (!maintenanceUpdateIds || maintenanceUpdateIds.length === 0) {
       res.status(400).json({
         message: "Bad Request: Missing update IDs",
       });
       return;
     }
     const result = await MaintenanceTimelineService.deleteUpdates(
-      updateIds,
+      maintenanceUpdateIds,
       maintenanceId,
       orgId,
     );
@@ -498,18 +363,14 @@ const modifyUpdate = async (req: Request, res: Response) => {
 };
 
 export {
-  addComponents,
   addTimelineUpdate,
   createMaintenance,
   deleteMaintenance,
   deleteTimelineUpdates,
-  detachComponents,
   getMaintenanceById,
   getTimelineUpdate,
-  listComponentsAttached,
   listMaintenances,
   listTimelineUpdates,
-  listUnattachedComponents,
   modifyUpdate,
   updateMaintenanceById,
 };

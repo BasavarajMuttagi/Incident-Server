@@ -41,7 +41,6 @@ export class ComponentService {
       where: { id, orgId },
       include: {
         incidents: true,
-        maintenanceComponent: true,
       },
     });
   }

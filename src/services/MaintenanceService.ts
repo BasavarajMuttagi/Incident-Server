@@ -21,7 +21,6 @@ export class MaintenanceService {
         data: {
           title: data.title,
           description: data.description,
-          status: data.status,
           startAt: data.startAt,
           endAt: data.endAt,
           orgId: data.orgId,
@@ -30,17 +29,6 @@ export class MaintenanceService {
           timeline: true,
         },
       });
-
-      if (data.components?.length) {
-        await tx.maintenanceComponent.createMany({
-          data: data.components.map((comp) => ({
-            maintenanceId: maintenance.id,
-            componentId: comp.componentId,
-            status: comp.status,
-            orgId: data.orgId,
-          })),
-        });
-      }
 
       return maintenance;
     });
@@ -61,7 +49,7 @@ export class MaintenanceService {
     ...rest
   }: Pick<
     Maintenance,
-    "id" | "orgId" | "title" | "description" | "startAt" | "endAt" | "status"
+    "id" | "orgId" | "title" | "description" | "startAt" | "endAt"
   >) {
     return prisma.maintenance.update({
       where: {

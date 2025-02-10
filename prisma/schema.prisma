@@ -9,15 +9,14 @@ datasource db {
 }
 
 model Component {
-  id                   String                 @id @default(uuid())
-  orgId                String
-  name                 String                 @unique
-  description          String?
-  status               ComponentStatus        @default(OPERATIONAL)
-  createdAt            DateTime               @default(now())
-  updatedAt            DateTime               @updatedAt
-  incidents            IncidentComponent[]
-  maintenanceComponent MaintenanceComponent[]
+  id          String              @id @default(uuid())
+  orgId       String
+  name        String              @unique
+  description String?
+  status      ComponentStatus     @default(OPERATIONAL)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  incidents   IncidentComponent[]
 
   @@index([orgId])
 }
@@ -77,48 +76,28 @@ model IncidentTimeline {
 }
 
 model Maintenance {
-  id          String                 @id @default(uuid())
+  id          String                @id @default(uuid())
   orgId       String
   title       String
   description String
-  status      MaintenanceStatus      @default(SCHEDULED)
   startAt     DateTime
   endAt       DateTime
-  createdAt   DateTime               @default(now())
-  updatedAt   DateTime               @updatedAt
-  components  MaintenanceComponent[]
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
   timeline    MaintenanceTimeline[]
 
-  @@index([orgId])
-  @@index([status])
-}
-
-model MaintenanceComponent {
-  id            String          @id @default(uuid())
-  orgId         String
-  maintenance   Maintenance     @relation(fields: [maintenanceId], references: [id], onDelete: Cascade)
-  maintenanceId String
-  component     Component       @relation(fields: [componentId], references: [id], onDelete: Cascade)
-  componentId   String
-  status        ComponentStatus
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-
-  @@unique([maintenanceId, componentId])
-  @@index([componentId])
-  @@index([maintenanceId])
   @@index([orgId])
 }
 
 model MaintenanceTimeline {
-  id            String            @id @default(uuid())
+  id            String         @id @default(uuid())
   orgId         String
   userId        String
   message       String
-  status        MaintenanceStatus
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-  maintenance   Maintenance       @relation(fields: [maintenanceId], references: [id], onDelete: Cascade)
+  status        IncidentStatus
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  maintenance   Maintenance    @relation(fields: [maintenanceId], references: [id], onDelete: Cascade)
   maintenanceId String
 
   @@index([orgId])
