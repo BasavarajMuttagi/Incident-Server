@@ -1,5 +1,5 @@
 import { getAuth } from "@clerk/express";
-import { ComponentStatus } from "@prisma/client";
+import { Component, ComponentStatus } from "@prisma/client";
 import { Request, Response } from "express";
 import { io } from "../..";
 import { ComponentService } from "../services/ComponentService";
@@ -10,9 +10,9 @@ const createComponent = async (req: Request, res: Response) => {
     const { orgId } = getAuth(req) as { orgId: string; userId: string };
     const { name, description, status } = req.body;
 
-    if (!name) {
+    if (!name || !description || !status) {
       res.status(400).json({
-        message: "Bad Request: Name is required",
+        message: "Bad Request: Name ,Description and Status are required",
       });
       return;
     }
@@ -47,11 +47,21 @@ const updateComponent = async (req: Request, res: Response) => {
   try {
     const { orgId } = getAuth(req) as { orgId: string; userId: string };
     const { componentId } = req.params;
-    const updateData = req.body;
+    const updateData = req.body as Pick<
+      Component,
+      "name" | "description" | "status"
+    >;
 
     if (!componentId) {
       res.status(400).json({
         message: "Bad Request: Missing component ID",
+      });
+      return;
+    }
+
+    if (!updateData.name && !updateData.description && !updateData.status) {
+      res.status(400).json({
+        message: "Bad Request: No valid fields to update",
       });
       return;
     }
@@ -132,30 +142,24 @@ const listComponents = async (req: Request, res: Response) => {
   try {
     const { orgId } = getAuth(req) as { orgId: string; userId: string };
 
-    try {
-      // Get initial components
-      const components = await ComponentService.listComponents(orgId);
+    // Get initial components
+    const components = await ComponentService.listComponents(orgId);
 
-      // Use Promise.all with map instead of forEach
-      const componentsWithStatus = await Promise.all(
-        components.map(async (element) => {
-          const status = await IncidentComponentService.getComponentStatus(
-            element.id,
-            orgId,
-          );
-          if (status === "OPERATIONAL") {
-            return element;
-          }
-          return { ...element, status };
-        }),
-      );
+    // Use Promise.all with map instead of forEach
+    const componentsWithStatus = await Promise.all(
+      components.map(async (element) => {
+        const status = await IncidentComponentService.getComponentStatus(
+          element.id,
+          orgId,
+        );
+        if (status === "OPERATIONAL") {
+          return element;
+        }
+        return { ...element, status };
+      }),
+    );
 
-      res.json(componentsWithStatus);
-    } catch (error) {
-      // Error handling
-      console.error("Error fetching component statuses:", error);
-      res.status(500).json({ error: "Failed to fetch component statuses" });
-    }
+    res.json(componentsWithStatus);
   } catch (error) {
     console.error("[LIST_COMPONENTS_ERROR] Failed to list components:", error);
     res.status(500).json({ message: "Internal server error" });

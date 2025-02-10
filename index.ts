@@ -7,6 +7,7 @@ import { Server } from "socket.io";
 import ComponentRouter from "./src/routes/component.route";
 import IncidentRouter from "./src/routes/incident.route";
 import SubscriberRouter from "./src/routes/subscriber.route";
+import MaintenanceRouter from "./src/routes/maintenance.route";
 import { PublicService } from "./src/services/PublicService";
 dotenv.config();
 const port = process.env.PORT || 3000;
@@ -22,6 +23,7 @@ app.get("/", (req, res) => {
 app.use("/api/v1/component", ComponentRouter);
 app.use("/api/v1/incident", IncidentRouter);
 app.use("/api/v1/subscriber", SubscriberRouter);
+app.use("/api/v1/maintenance", MaintenanceRouter);
 
 io.on("connection", async (socket) => {
   console.log(socket.id, "connected");
