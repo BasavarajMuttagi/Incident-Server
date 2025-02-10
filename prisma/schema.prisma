@@ -81,7 +81,7 @@ model Maintenance {
   title       String
   description String
   startAt     DateTime
-  endAt       DateTime
+  endAt       DateTime?
   createdAt   DateTime              @default(now())
   updatedAt   DateTime              @updatedAt
   timeline    MaintenanceTimeline[]

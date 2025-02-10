@@ -4,13 +4,14 @@ import { Request, Response } from "express";
 import { io } from "../..";
 import { ComponentService } from "../services/ComponentService";
 import { IncidentComponentService } from "../services/IncidentComponentService";
+import { EmailService } from "../services/EmailService";
 
 const createComponent = async (req: Request, res: Response) => {
   try {
     const { orgId } = getAuth(req) as { orgId: string; userId: string };
     const { name, description, status } = req.body;
 
-    if (!name || !description || !status) {
+    if (!name || !status) {
       res.status(400).json({
         message: "Bad Request: Name ,Description and Status are required",
       });
@@ -30,6 +31,12 @@ const createComponent = async (req: Request, res: Response) => {
       status,
       orgId,
     });
+    await EmailService.notifySubscribers(
+      orgId,
+      "component",
+      "created",
+      component,
+    );
     io.to(component.orgId).emit("new-component", component);
     res.status(201).json(component);
     return;
@@ -71,6 +78,12 @@ const updateComponent = async (req: Request, res: Response) => {
       orgId,
       updateData,
     );
+    await EmailService.notifySubscribers(
+      orgId,
+      "component",
+      "updated",
+      component,
+    );
     io.to(component.orgId).emit("component-update", component);
     res.json(component);
     return;
@@ -97,7 +110,8 @@ const deleteComponent = async (req: Request, res: Response) => {
     }
 
     const data = await ComponentService.deleteComponent(componentId, orgId);
-    io.to(data.orgId).emit("component-delete", data);
+    await EmailService.notifySubscribers(orgId, "component", "deleted", data);
+    io.to(data.orgId).emit("component-deleted", data.id);
     res.sendStatus(204);
     return;
   } catch (error) {

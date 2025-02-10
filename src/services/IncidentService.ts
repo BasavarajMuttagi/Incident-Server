@@ -76,7 +76,7 @@ export class IncidentService {
   }
 
   static async deleteIncident(incidentId: string, orgId: string) {
-    return prisma.incident.deleteMany({
+    return prisma.incident.delete({
       where: {
         id: incidentId,
         orgId,

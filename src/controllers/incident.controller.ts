@@ -5,6 +5,7 @@ import { io } from "../..";
 import { IncidentComponentService } from "../services/IncidentComponentService";
 import { IncidentService } from "../services/IncidentService";
 import { IncidentTimelineService } from "../services/IncidentTimelineService";
+import { EmailService } from "../services/EmailService";
 
 const createIncident = async (req: Request, res: Response) => {
   try {
@@ -28,7 +29,12 @@ const createIncident = async (req: Request, res: Response) => {
       orgId,
       userId,
     });
-
+    await EmailService.notifySubscribers(
+      orgId,
+      "incident",
+      "created",
+      incident,
+    );
     io.to(incident.orgId).emit("new-incident", incident);
     res.sendStatus(201);
     return;
@@ -107,6 +113,12 @@ const updateIncidentById = async (req: Request, res: Response) => {
         ? new Date(updateData.resolvedAt)
         : null,
     });
+    await EmailService.notifySubscribers(
+      orgId,
+      "incident",
+      "updated",
+      incident,
+    );
     io.to(incident.orgId).emit("incident-updated", incident);
     res.sendStatus(200);
     return;
@@ -129,7 +141,14 @@ const deleteIncident = async (req: Request, res: Response) => {
       return;
     }
     const incident = await IncidentService.deleteIncident(incidentId, orgId);
-    res.status(200).json(incident);
+    await EmailService.notifySubscribers(
+      orgId,
+      "incident",
+      "deleted",
+      incident,
+    );
+    io.to(incident.orgId).emit("incident-deleted", incident.id);
+    res.sendStatus(200);
     return;
   } catch (error) {
     console.error(
@@ -306,6 +325,9 @@ const deleteTimelineUpdates = async (req: Request, res: Response) => {
       incidentId,
       orgId,
     );
+    incidentUpdateIds.forEach((element) => {
+      io.to(orgId).emit("incident-timeline-deleted", incidentId, element);
+    });
     res.status(200).json(incidents);
     return;
   } catch (error) {

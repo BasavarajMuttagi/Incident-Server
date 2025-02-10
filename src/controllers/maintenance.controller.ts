@@ -1,19 +1,20 @@
 import { clerkClient, getAuth } from "@clerk/express";
-import { MaintenanceTimeline } from "@prisma/client";
+import { Maintenance, MaintenanceTimeline } from "@prisma/client";
 import { Request, Response } from "express";
 import { io } from "../..";
+import { EmailService } from "../services/EmailService";
 import { MaintenanceService } from "../services/MaintenanceService";
 import { MaintenanceTimelineService } from "../services/MaintenanceTimelineService";
 
 const createMaintenance = async (req: Request, res: Response) => {
   try {
-    const { orgId, userId } = getAuth(req) as { orgId: string; userId: string };
-    const { title, description, status, startAt, endAt, components } = req.body;
+    const { orgId } = getAuth(req) as { orgId: string; userId: string };
+    const { title, description, startAt, endAt } = req.body as Maintenance;
 
-    if (!title || !description || !status || !startAt || !endAt) {
+    if (!title || !description || !startAt) {
       res.status(400).json({
         message:
-          "Bad Request: Missing required fields (title, description, status, startAt, endAt)",
+          "Bad Request: Missing required fields (title, description, status, startAt)",
       });
       return;
     }
@@ -21,14 +22,17 @@ const createMaintenance = async (req: Request, res: Response) => {
     const maintenance = await MaintenanceService.createMaintenance({
       title,
       description,
-      status,
-      startAt: new Date(startAt),
-      endAt: new Date(endAt),
-      components,
-      orgId,
-      userId,
-    });
 
+      startAt: new Date(startAt),
+      endAt: endAt ? new Date(endAt) : null,
+      orgId,
+    });
+    await EmailService.notifySubscribers(
+      orgId,
+      "maintenance",
+      "created",
+      maintenance,
+    );
     io.to(maintenance.orgId).emit("new-maintenance", maintenance);
     res.sendStatus(201);
     return;
@@ -89,26 +93,19 @@ const updateMaintenanceById = async (req: Request, res: Response) => {
       return;
     }
 
-    if (
-      !updateData.title &&
-      !updateData.description &&
-      !updateData.status &&
-      !updateData.startAt &&
-      !updateData.endAt
-    ) {
-      res.status(400).json({
-        message: "Bad Request: No valid fields to update",
-      });
-      return;
-    }
     const maintenance = await MaintenanceService.updateMaintenance({
       id,
       orgId,
       ...updateData,
-      startAt: new Date(updateData.startAt),
-      endAt: new Date(updateData.endAt),
+      ...(updateData.startAt && { startAt: new Date(updateData.startAt) }),
+      ...(updateData.endAt && { endAt: new Date(updateData.endAt) }),
     });
-
+    await EmailService.notifySubscribers(
+      orgId,
+      "maintenance",
+      "updated",
+      maintenance,
+    );
     io.to(maintenance.orgId).emit("maintenance-updated", maintenance);
     res.sendStatus(200);
     return;
@@ -136,7 +133,13 @@ const deleteMaintenance = async (req: Request, res: Response) => {
       maintenanceId,
       orgId,
     );
-
+    await EmailService.notifySubscribers(
+      orgId,
+      "maintenance",
+      "deleted",
+      maintenance,
+    );
+    io.to(maintenance.orgId).emit("maintenance-deleted", maintenance.id);
     res.status(200).json(maintenance);
     return;
   } catch (error) {
@@ -229,7 +232,7 @@ const addTimelineUpdate = async (req: Request, res: Response) => {
       userId,
     });
 
-    io.to(update.orgId).emit("timeline-updated", update);
+    io.to(update.orgId).emit("maintenance-timeline-updated", update);
     res.status(200).json(update);
     return;
   } catch (error) {
@@ -265,7 +268,9 @@ const deleteTimelineUpdates = async (req: Request, res: Response) => {
       maintenanceId,
       orgId,
     );
-
+    maintenanceUpdateIds.forEach((element) => {
+      io.to(orgId).emit("maintenance-timeline-deleted", maintenanceId, element);
+    });
     res.status(200).json(result);
     return;
   } catch (error) {

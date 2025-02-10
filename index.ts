@@ -6,8 +6,9 @@ import { createServer } from "node:http";
 import { Server } from "socket.io";
 import ComponentRouter from "./src/routes/component.route";
 import IncidentRouter from "./src/routes/incident.route";
-import SubscriberRouter from "./src/routes/subscriber.route";
 import MaintenanceRouter from "./src/routes/maintenance.route";
+import SubscriberRouter from "./src/routes/subscriber.route";
+import { MaintenanceService } from "./src/services/MaintenanceService";
 import { PublicService } from "./src/services/PublicService";
 dotenv.config();
 const port = process.env.PORT || 3000;
@@ -40,7 +41,10 @@ io.on("connection", async (socket) => {
     const data = await PublicService.getIncidents(orgId);
     cb(data);
   });
-
+  socket.on("get-maintenances", async (orgId, cb) => {
+    const data = await MaintenanceService.listMaintenances(orgId);
+    cb(data);
+  });
   socket.on("disconnect", async () => {
     console.log("User disconnected");
     socket.rooms.clear();
